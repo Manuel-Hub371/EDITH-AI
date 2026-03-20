@@ -1,0 +1,57 @@
+{
+  "name": "edith-ai",
+  "productName": "EDITH AI",
+  "version": "40.0.0",
+  "description": "EDITH — Your AI Desktop Agent",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev:node": "nodemon --watch edith edith/controller/server.js",
+    "dev:ai": "nodemon --watch edith/ai_engine -e py --exec python edith/ai_engine/ai.py",
+    "dev": "concurrently \"npm run dev:node\" \"npm run dev:ai\"",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win"
+  },
+  "build": {
+    "appId": "com.edith.ai",
+    "productName": "EDITH AI",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "edith/**/*",
+      "assets/**/*",
+      "node_modules/**/*",
+      "package.json",
+      ".env"
+    ],
+    "asarUnpack": [
+      "edith/controller/**/*",
+      "edith/ai_engine/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/tray_icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "mongoose": "^8.0.0",
+    "systeminformation": "^5.31.4",
+    "tree-kill": "^1.2.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "electron": "^34.0.0",
+    "electron-builder": "^25.0.0",
+    "nodemon": "^3.0.1"
+  }
+}

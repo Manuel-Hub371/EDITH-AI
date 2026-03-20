@@ -1,0 +1,17 @@
+{
+    "watch": [
+        "backend-node/"
+    ],
+    "ignore": [
+        "node_modules",
+        "frontend",
+        "database",
+        "scripts",
+        ".gemini",
+        "*.md",
+        "*.txt",
+        "package.json",
+        "package-lock.json"
+    ],
+    "ext": "js,json"
+}
