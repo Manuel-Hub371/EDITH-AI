@@ -1,12 +1,11 @@
 /**
- * EDITH Electron Main Process (V40.4) — Solid-State Production
- * ──────────────────────────────────────────────────────────
- * Enhancements:
- *   1. Uses Electron's native 'utilityProcess' for Node (More robust than spawn).
- *   2. Forced absolute path resolution for all backend entries.
- *   3. Direct environment injection (Fixes missing GOOGLE_API_KEY).
- *   4. Shell-less spawning for Python (Fixes "EDITH AI" space bug).
- *   5. AppData logging for persistent diagnostics.
+ * EDITH Electron Main Process (V41.0) — Production Spawning Overhaul
+ * ──────────────────────────────────────────────────────────────────
+ * This version implements a strictly controlled 'spawn' strategy:
+ *   1. Replaces utilityProcess with child_process.spawn("node", ...).
+ *   2. Resolves scripts to 'app.asar.unpacked' via getUnpackedPath().
+ *   3. Resolves .env to 'process.resourcesPath' for production reading.
+ *   4. Redirects all logs to %APPDATA%/edith-ai/logs/backend.log.
  */
 
 const {
@@ -16,8 +15,7 @@ const {
     Menu,
     globalShortcut,
     ipcMain,
-    nativeImage,
-    utilityProcess
+    nativeImage
 } = require('electron');
 const path = require('path');
 const http = require('http');
@@ -25,21 +23,24 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const kill = require('tree-kill');
 
-// Load .env explicitly from the true project root
-const envPath = app.isPackaged 
-    ? path.join(process.resourcesPath, 'app.asar', '.env')
-    : path.join(__dirname, '../.env');
-
-require('dotenv').config({ path: envPath });
-
-// ── Path Resolution ─────────────────────────────────────────────────────────
+// ── Path Resolution Helper (V41.0) ───────────────────────────────────────────
 function getUnpackedPath(relPath) {
-    const root = app.isPackaged 
-        ? app.getAppPath().replace('app.asar', 'app.asar.unpacked') 
-        : app.getAppPath();
-    return path.resolve(root, relPath);
+    if (!app.isPackaged) return path.join(app.getAppPath(), relPath);
+    // In production, unpacked files are in resources/app.asar.unpacked/
+    return path.join(process.resourcesPath, 'app.asar.unpacked', relPath);
 }
 
+// ── Environment Loading (V41.0) ──────────────────────────────────────────────
+const ENV_PATH = app.isPackaged 
+    ? path.join(process.resourcesPath, '.env') 
+    : path.join(__dirname, '../.env');
+
+if (fs.existsSync(ENV_PATH)) {
+    require('dotenv').config({ path: ENV_PATH });
+}
+
+// ── Constants & Paths ─────────────────────────────────────────────────────────
+const NODE_SERVER_URL = 'http://localhost:5000';
 const LOG_DIR = path.join(app.getPath('userData'), 'logs');
 const BACKEND_LOG = path.join(LOG_DIR, 'backend.log');
 
@@ -54,8 +55,7 @@ let mainWindow = null;
 let tray = null;
 let backendReady = false;
 let pollTimer = null;
-let nodeChild = null;
-let pythonChild = null;
+const childProcesses = [];
 
 // ── Logging Setup ─────────────────────────────────────────────────────────────
 if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
@@ -67,74 +67,77 @@ function log(msg) {
     console.log(`[MAIN] ${msg}`);
 }
 
-// ── Service Orchestration ───────────────────────────────────────────────────
+// ── Service Orchestration (The Heart of V41.0) ───────────────────────────────
 function spawnServices() {
-    log(`Initializing Services V40.4 (Solid-State)`);
-    log(`Packaged: ${app.isPackaged}`);
-    log(`Node Entry: ${NODE_ENTRY}`);
-    log(`Python Entry: ${PYTHON_ENTRY}`);
-    log(`Env Path Used: ${envPath}`);
-    log(`API Key Loaded: ${process.env.GOOGLE_API_KEY ? 'Yes' : 'No'}`);
+    log('--- SPAWNING STARTUP (V41.0) ---');
+    log(`Environment Path: ${ENV_PATH}`);
+    log(`Node Script: ${NODE_ENTRY}`);
+    log(`Python Script: ${PYTHON_ENTRY}`);
 
     /**
-     * 1. Spawn Node Backend (UtilityProcess)
-     * UtilityProcess is the most stable way to run a node script in an Electron app.
+     * 1. Spawn Node Backend
      */
-    try {
-        log('Launching Node UtilityProcess...');
-        nodeChild = utilityProcess.fork(NODE_ENTRY, [], {
-            env: { ...process.env, NODE_PORT: 5000, NODE_ENV: 'production' },
-            stdio: 'pipe'
-        });
+    const nodeBinary = 'node'; 
+    const nodeModulesPath = app.isPackaged 
+        ? path.join(process.resourcesPath, 'app.asar.unpacked', 'node_modules') 
+        : path.join(app.getAppPath(), 'node_modules');
 
-        nodeChild.stdout.on('data', (data) => logStream.write(`[NODE] ${data}`));
-        nodeChild.stderr.on('data', (data) => logStream.write(`[NODE_ERR] ${data}`));
-        
-        nodeChild.on('exit', (code) => log(`Node process exited with code ${code}`));
-        nodeChild.on('spawn', () => log('Node process successfully spawned.'));
+    const nodeEnv = { 
+        ...process.env, 
+        NODE_ENV: 'production', 
+        PORT: 5000,
+        NODE_PATH: nodeModulesPath
+    };
 
-    } catch (err) {
-        log(`CRITICAL: Node Fork Failed: ${err.message}`);
-    }
+    log(`Spawning Node: ${nodeBinary} [${NODE_ENTRY}]`);
+    const nodeProcess = spawn(nodeBinary, [NODE_ENTRY], {
+        cwd: path.dirname(NODE_ENTRY),
+        env: nodeEnv,
+        shell: false 
+    });
+
+    nodeProcess.stdout.on('data', (data) => logStream.write(`[NODE] ${data}`));
+    nodeProcess.stderr.on('data', (data) => logStream.write(`[NODE_ERR] ${data}`));
+    nodeProcess.on('exit', (code) => log(`Node process exited with code ${code}`));
+    nodeProcess.on('error', (err) => log(`FAILED to spawn Node: ${err.message}`));
+    childProcesses.push(nodeProcess);
 
     /**
      * 2. Spawn Python Core
-     * Using shell:false to avoid "EDITH AI" space mangling.
      */
-    try {
-        log('Launching Python Core...');
-        const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-        pythonChild = spawn(pythonCmd, [PYTHON_ENTRY], {
-            cwd: path.dirname(PYTHON_ENTRY),
-            env: { ...process.env },
-            shell: false
-        });
+    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+    log(`Spawning Python: ${pythonCmd} [${PYTHON_ENTRY}]`);
 
-        pythonChild.stdout.on('data', (data) => logStream.write(`[PYTHON] ${data}`));
-        pythonChild.stderr.on('data', (data) => logStream.write(`[PYTHON_ERR] ${data}`));
-        
-        pythonChild.on('error', (err) => log(`Python Spawn Error: ${err.message}`));
-        pythonChild.on('close', (code) => log(`Python process closed with ${code}`));
+    const pythonProcess = spawn(pythonCmd, [PYTHON_ENTRY], {
+        cwd: path.dirname(PYTHON_ENTRY),
+        env: { ...process.env },
+        shell: false
+    });
 
-    } catch (err) {
-        log(`CRITICAL: Python Spawn Failed: ${err.message}`);
-    }
+    pythonProcess.stdout.on('data', (data) => logStream.write(`[PYTHON] ${data}`));
+    pythonProcess.stderr.on('data', (data) => logStream.write(`[PYTHON_ERR] ${data}`));
+    pythonProcess.on('exit', (code) => log(`Python process exited with code ${code}`));
+    pythonProcess.on('error', (err) => log(`FAILED to spawn Python: ${err.message}`));
+    childProcesses.push(pythonProcess);
+
+    log('--- SPAWNING INITIATED ---');
 }
 
 function killServices() {
-    log('Terminating backend services...');
-    if (nodeChild) nodeChild.kill();
-    if (pythonChild && pythonChild.pid) {
-        kill(pythonChild.pid, 'SIGTERM', (err) => {
-            if (err) log(`Kill Python error: ${err}`);
-        });
-    }
+    log('Stopping all backend services...');
+    childProcesses.forEach((proc) => {
+        if (proc.pid) {
+            kill(proc.pid, 'SIGTERM', (err) => {
+                if (err) log(`Kill error (PID ${proc.pid}): ${err}`);
+            });
+        }
+    });
 }
 
 // ── Backend Health Check ──────────────────────────────────────────────────────
 function checkBackend() {
     return new Promise((resolve) => {
-        const req = http.get('http://localhost:5000/api/status', (res) => {
+        const req = http.get(`${NODE_SERVER_URL}/api/status`, (res) => {
             resolve(res.statusCode === 200);
         });
         req.on('error', () => resolve(false));
@@ -143,7 +146,6 @@ function checkBackend() {
 }
 
 function startHealthPolling() {
-    let failCount = 0;
     pollTimer = setInterval(async () => {
         const isUp = await checkBackend();
         if (isUp !== backendReady) {
@@ -151,17 +153,6 @@ function startHealthPolling() {
             if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.webContents.send('backend-status', isUp ? 'up' : 'down');
             }
-        }
-        
-        if (!isUp && app.isPackaged) {
-            failCount++;
-            if (failCount > 15) { // 30 seconds
-                log('Handshake Timeout: Opening Diagnostics...');
-                if (mainWindow) mainWindow.webContents.openDevTools({ mode: 'detach' });
-                failCount = -999;
-            }
-        } else {
-            failCount = 0;
         }
     }, 2000);
 }

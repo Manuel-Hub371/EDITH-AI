@@ -292,7 +292,8 @@ const DesktopBridge = {
     /**
      * Poll Node server health until it responds, then hide overlay.
      */
-    async waitForBackend(retries = 20, delay = 1500) {
+    async waitForBackend(retries = 30, delay = 2000) {
+        let lastError = "Timeout during handshake";
         for (let i = 0; i < retries; i++) {
             try {
                 const res = await fetch(`${API_BASE}/api/status`);
@@ -300,14 +301,23 @@ const DesktopBridge = {
                     this.hideOverlay();
                     return;
                 }
-            } catch (_) { /* backend not ready */ }
-            this.statusEl.textContent = `Connecting... (attempt ${i + 1}/${retries})`;
+            } catch (err) { 
+                lastError = err.message;
+            }
+            this.statusEl.textContent = `Connecting to EDITH... (attempt ${i + 1}/${retries})`;
             await new Promise(r => setTimeout(r, delay));
         }
-        // Backend never came online
+        
+        // Backend never came online (Diagnostic V41.1)
         if (this.overlay) {
-            this.statusEl.textContent = '⚠️  Backend failed to start. Run: npm run services:start';
-            this.statusEl.style.color = '#ff6b6b';
+            this.statusEl.innerHTML = `
+                <div style="font-weight:bold; margin-bottom:10px;">⚠️ Backend Synchronization Failed</div>
+                <div style="font-size:0.85em; opacity:0.8; color:#ff6b6b;">Error: ${lastError}</div>
+                <div style="font-size:0.8em; margin-top:15px; border-top:1px solid #333; padding-top:10px;">
+                    Check <b>System Tray > Open Logs</b> for details.
+                </div>
+            `;
+            this.statusEl.style.color = '#fff';
         }
     },
 

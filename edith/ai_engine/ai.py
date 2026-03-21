@@ -85,65 +85,47 @@ You are EDITH. Speak like a real person in casual conversation.
 4. PARAMETERS: Always wrap target data in the "parameters" object as shown in the schema.
 """
 
-# Primary Best Working Model (Verified High-Capacity Alternate)
-MODEL_ID = 'models/gemma-3-27b-it'
+# Primary Best Working Model (Optimized for Speed/Quality)
+MODEL_ID = 'gemini-2.0-flash'
 
 async def generate_with_fallback(prompt: str, context: dict = None) -> str:
-    """Generates content using the primary model with graceful quota handling (Async)."""
+    """Generates content using the primary model with native system instruction support."""
     try:
-        # Inject context memory into the system instruction if available
         context_str = f"\n[CONTEXT MEMORY]\n{json.dumps(context, indent=2)}\n" if context else ""
         system_instruction = f"{HYBRID_SYSTEM_PROMPT}{context_str}"
         
-        logger.info(f"Initiating Async Uplink: {MODEL_ID}")
+        logger.info(f"Initiating Uplink: {MODEL_ID}")
         
-        if "gemma" in MODEL_ID.lower():
-            full_prompt = f"{system_instruction}\n\n{prompt}"
-            response = await client.aio.models.generate_content(
-                model=MODEL_ID,
-                contents=full_prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.7,
-                    stop_sequences=["USER:", "\nUSER:", "User:", "\nUser:", "\n\nUSER:"]
-                )
+        response = await client.aio.models.generate_content(
+            model=MODEL_ID,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                temperature=0.7,
+                # Prevent runaway code blocks or prefixes
+                stop_sequences=["USER:", "\nUSER:", "User:", "\nUser:", "\n\nUSER:"]
             )
-        else:
-            response = await client.aio.models.generate_content(
-                model=MODEL_ID,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
-                    temperature=0.7,
-                    stop_sequences=["USER:", "\nUSER:", "User:", "\nUser:", "\n\nUSER:"]
-                )
-            )
+        )
         
         if not response.text:
-            return json.dumps({
-                "mode": "chat",
-                "response": "Engine Silence: The model returned no content. Please re-synchronize."
-            })
+            return "..."
             
         return response.text.strip()
 
     except Exception as e:
-        err_msg = str(e)
-        logger.error(f"Engine Uplink Fault: {err_msg}")
-        # Return a simple text error that won't be mistaken for execution JSON
-        return f"Operational Fault: {err_msg}"
+        logger.error(f"Engine Uplink Fault: {str(e)}")
+        return f"Operational Fault: {str(e)}"
 
 @app.post("/process")
 async def process_message(user_msg: UserMessage):
-    """Processes user input with contextual history and returns a pure chat response (Async)."""
+    """Processes input and returns a clean chat response (V41.3)."""
     try:
-        # Construct history and prompt with standardized labels (USER: / AI:)
         history_str = "\n".join([f"{m['role'].upper()}: {m['text']}" for m in user_msg.history])
-        prompt = f"CONTEXT HISTORY:\n{history_str}\n\nUSER: {user_msg.message}\nAI:" if history_str else f"USER: {user_msg.message}\nAI:"
+        prompt = f"HISTORY:\n{history_str}\n\nUSER: {user_msg.message}\nAI:" if history_str else f"USER: {user_msg.message}\nAI:"
         
         raw_text = await generate_with_fallback(prompt, user_msg.context)
         
-        # --- Strict Execution Gate (V38.1) ---
-        # Only trigger JSON extraction if there is clear actionable intent
+        # --- Strict Execution Gate ---
         execution_triggers = [
             'create', 'delete', 'rename', 'move', 'copy', 'open', 'close', 'save', 'write', 'append', 'overwrite',
             'summarize', 'search', 'find', 'cleanup', 'organize',
@@ -166,21 +148,23 @@ async def process_message(user_msg: UserMessage):
                 try:
                     potential_json = json.loads(json_str)
                     if isinstance(potential_json, dict) and potential_json.get("mode") == "execution":
-                        if "actions" in potential_json:
-                            return potential_json
-                        if "execution_actions" in potential_json:
-                            potential_json["actions"] = potential_json.pop("execution_actions")
-                            return potential_json
+                        return potential_json
                 except json.JSONDecodeError:
-                    logger.warning("Found JSON-like block but failed to parse. Falling back to chat.")
+                    pass
 
-        # Default: Strip JSON and return pure chat
+        # --- Clean Conversational Response (V41.3) ---
+        # 1. Strip all JSON blocks
         clean_text = re.sub(r'```json.*?```', '', raw_text, flags=re.DOTALL)
         clean_text = re.sub(r'\{.*?"mode":.*?"execution".*?\}', '', clean_text, flags=re.DOTALL)
-        # Final cleanup for any leftover JSON-like debris
-        clean_text = re.sub(r'^\s*\{\s*".*?\}\s*$', '', clean_text, flags=re.MULTILINE).strip()
+        
+        # 2. Strip standard prefixes that models sometimes hallucinate
+        clean_text = re.sub(r'^(AI|EDITH|Response|Output):\s*', '', clean_text, flags=re.IGNORECASE)
+        
+        # 3. Final cleanup
+        clean_text = clean_text.strip()
+        if not clean_text: clean_text = raw_text.strip()
             
-        return {"mode": "chat", "response": clean_text if clean_text else raw_text.strip()}
+        return {"mode": "chat", "response": clean_text}
 
     except Exception as e:
         logger.error(f"System Critical: {str(e)}")
