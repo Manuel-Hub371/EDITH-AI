@@ -2,6 +2,7 @@ const si = require('systeminformation');
 const systemState = require('./system_state');
 const fs = require('fs');
 const path = require('path');
+const processScanner = require('../core/launcher/processScanner');
 
 /**
  * System Monitor (V38.1 Nervous System)
@@ -73,10 +74,12 @@ class SystemMonitor {
                 this._withTimeout(si.mem(), 10000, 'MEM').catch(() => ({ total: 0, used: 0, active: 0 })),
                 this._withTimeout(si.battery(), 10000, 'BAT').catch(() => ({ percent: 0, isCharging: false })),
                 this._withTimeout(si.networkInterfaces(), 10000, 'NET').catch(() => []),
-                this._withTimeout(si.time(), 5000, 'TIME').catch(() => ({ uptime: 0 }))
+                this._withTimeout(si.time(), 5000, 'TIME').catch(() => ({ uptime: 0 })),
+                processScanner.scan().catch(() => [])
             ];
 
-            const [cpu, mem, battery, network, time] = await Promise.all(syncs);
+            const [cpu, mem, battery, network, time, apps] = await Promise.all(syncs);
+            systemState.update('running_apps', apps);
 
             const telemetry = {
                 cpu_load: Math.round(cpu.currentLoad || 0),

@@ -128,8 +128,13 @@ class SystemIntegrationHub {
         const { intent, parameters } = action;
         const rawTarget = parameters?.app || parameters?.target || parameters?.path;
         
-        // --- Centralized Sanitization & Expansion (V47.1) ---
-        const target = this.utils.getSafePath(rawTarget);
+        // --- Selective Sanitization (V47.9) ---
+        // Sanitize if it's an OPEN_PATH intent, or if the target is a path/variable
+        // Note: URI Protocols (ms-settings:) shouldn't be resolved as paths
+        const isUri = rawTarget && rawTarget.includes(':') && !rawTarget.includes('\\') && !rawTarget.includes('/');
+        const isPath = rawTarget && (rawTarget.includes('\\') || rawTarget.includes('/') || rawTarget.includes('%') || rawTarget.includes('$'));
+        
+        const target = (intent === 'OPEN_PATH' || isPath) && !isUri ? this.utils.getSafePath(rawTarget) : rawTarget;
         
         if (!this.isInitialized) await this.initialize();
 
@@ -144,6 +149,8 @@ class SystemIntegrationHub {
                 return await this.processManager.launchApplication(target);
             case 'CLOSE_APPLICATION':
                 return await this.processManager.closeApplication(target);
+            case 'LIST_RUNNING_APPS':
+                return await this.processManager.getRunningApps();
             case 'OPEN_PATH':
                 return await this.processManager.openPath(target);
             

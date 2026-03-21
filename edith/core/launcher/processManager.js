@@ -1,14 +1,31 @@
 const appResolver = require('./appResolver');
 const powershellExecutor = require('./powershellExecutor');
 const systemState = require('../../system/system_state');
+const processScanner = require('./processScanner');
 
 /**
- * ProcessManager (V42.0 Self-Learning Launcher)
- * High-level orchestrator for application lifecycle and automation.
+ * ProcessManager (V48.1 Real-Time Awareness)
+ * High-level orchestrator for application lifecycle and OS-level monitoring.
  */
 class ProcessManager {
     constructor() {
-        this.activeProcesses = [];
+        this.scanner = processScanner;
+    }
+
+    /**
+     * Get live list of running user apps directly from OS (V48.1)
+     */
+    async getRunningApps() {
+        const apps = await this.scanner.scan();
+        systemState.update('running_apps', apps);
+        return apps;
+    }
+
+    /**
+     * Check if a specific application is currently open (OS Truth)
+     */
+    async isAppOpen(appName) {
+        return await this.scanner.isRunning(appName);
     }
 
     /**

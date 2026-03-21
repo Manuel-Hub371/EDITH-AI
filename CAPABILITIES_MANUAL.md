@@ -1,10 +1,21 @@
-# EDITH AI | Capabilities Manual (V42.7)
+# EDITH AI | Capabilities Manual (V48.1)
 
 EDITH is a production-hardened, intent-driven AI desktop agent — built for natural human conversation and deep, self-healing Windows OS integration.
 
 ---
 
-## 1. Interaction Modes & Personality (Refined V41.8)
+## 1. Real-Time OS Awareness (V48.1)
+
+EDITH now features a **Zero-Assumption Awarenes Engine** that queries the operating system directly:
+
+- **🛰️ Live Process Scanning**: Queries the Windows Process Table via PowerShell for 100% real-world accuracy.
+- **🛡️ Visible App Filtering**: Automatically filters out system/background processes, returning only apps with a `MainWindowTitle`.
+- **📊 Real-Time Metrics**: Captures live CPU and Memory usage for every active application during a 10s heartbeat cycle.
+- **🧠 OS-Level Truth**: Bypasses internal logs and session history — if you ask "Is Chrome open?", EDITH checks the live system process list instantly.
+
+---
+
+## 2. Interaction Modes & Personality (Refined V41.8)
 
 EDITH operates with **Human-Centric Intelligence** designed to feel like a collaborator, not a tool:
 
@@ -14,7 +25,7 @@ EDITH operates with **Human-Centric Intelligence** designed to feel like a colla
 
 ---
 
-## 2. Self-Healing Nervous System (V41.9)
+## 3. Self-Healing Nervous System (V41.9)
 
 EDITH features a **High-Availability Architecture** designed for zero-failure production environments:
 
@@ -24,7 +35,7 @@ EDITH features a **High-Availability Architecture** designed for zero-failure pr
 
 ---
 
-## 3. Advanced AI Engine (V41.18 Quota Resilience)
+## 4. Advanced AI Engine (V41.18 Quota Resilience)
 
 The cognitive layer uses a **High-Resiliency Model Registry** to ensure 100% uptime on the Google Free Tier:
 
@@ -38,7 +49,7 @@ The cognitive layer uses a **High-Resiliency Model Registry** to ensure 100% upt
 
 ---
 
-## 4. Smart Universal Launcher (V46.5)
+## 5. Smart Universal Launcher (V46.5)
 
 EDITH features an adaptive, intent-driven launcher with 100% OS coverage:
 
@@ -58,7 +69,7 @@ EDITH features an adaptive, intent-driven launcher with 100% OS coverage:
 
 ---
 
-## 5. Nervous System (System Integration Layer)
+## 6. Nervous System (System Integration Layer)
 
 - **📸 Real-time Telemetry**: Throttled 10s heartbeat for CPU/RAM/Battery ensures high system responsiveness.
 - **📡 System Bridge API**: Staggered service startup prevents CPU congestion during initialization.
@@ -66,7 +77,7 @@ EDITH features an adaptive, intent-driven launcher with 100% OS coverage:
 
 ---
 
-## 6. Technical Stack (Production Build)
+## 7. Technical Stack (Production Build)
 
 | Component | Technology | Role |
 | :--- | :--- | :--- |

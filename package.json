@@ -1,7 +1,7 @@
 {
   "name": "edith-ai",
   "productName": "EDITH AI",
-  "version": "41.5.0",
+  "version": "48.1.0",
   "description": "EDITH — Your AI Desktop Agent",
   "main": "electron/main.js",
   "scripts": {

@@ -41,6 +41,27 @@ class PowerShellExecutor {
             });
         });
     }
+
+    /**
+     * Fetch all user-visible running applications directly from OS (V48.1)
+     */
+    async scanUserApps() {
+        return new Promise((resolve, reject) => {
+            // Filter: Must have a MainWindowTitle to be considered a "User App"
+            const script = `Get-Process | Where-Object { $_.MainWindowTitle } | Select-Object Name, Id, MainWindowTitle, @{Name='CPU';Expression={ [Math]::Round($_.CPU, 2) }}, @{Name='WorkingSet';Expression={ $_.WorkingSet64 }} | ConvertTo-Json`;
+            const command = `powershell -Command "${script}"`;
+
+            exec(command, (error, stdout, stderr) => {
+                if (error) return resolve([]); // Fail gracefully with empty list
+                try {
+                    const data = JSON.parse(stdout);
+                    resolve(Array.isArray(data) ? data : [data]);
+                } catch (e) {
+                    resolve([]);
+                }
+            });
+        });
+    }
 }
 
 module.exports = new PowerShellExecutor();
