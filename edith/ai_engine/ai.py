@@ -1,3 +1,4 @@
+import asyncio
 import os
 import json
 import logging
@@ -81,40 +82,63 @@ You are EDITH. Speak like a real person in casual conversation.
 [STRICT RULES]
 1. PRONOUNS: Use [CONTEXT MEMORY] to resolve "it", "that", "this".
 2. SAFETY: Never attempt to terminate critical system processes like explorer.exe.
-3. CONTEXT INTEGRATION: If [SYSTEM_STATE] says you are at 90% CPU, mention you are feeling the heat/load.
+3. CONTEXT INTEGRATION: Only mention system performance (CPU/RAM/Apps) if specifically asked, or if it explains why you are responding slowly. Never dump exact percentages unsolicited.
 4. PARAMETERS: Always wrap target data in the "parameters" object as shown in the schema.
 """
 
-# Primary Best Working Model (Optimized for Speed/Quality)
-MODEL_ID = 'gemini-2.0-flash'
+# Stable Model IDs (V41.18 - Exact Registry Match)
+PRIMARY_MODEL = 'models/gemini-flash-latest' # Stable 1.5 Flash (High Quota)
+FALLBACK_MODELS = [
+    'models/gemini-2.0-flash', 
+    'models/gemini-2.0-flash-lite',
+    'models/gemini-2.5-flash',
+    'models/gemini-pro-latest'
+]
 
 async def generate_with_fallback(prompt: str, context: dict = None) -> str:
-    """Generates content using the primary model with native system instruction support."""
-    try:
-        context_str = f"\n[CONTEXT MEMORY]\n{json.dumps(context, indent=2)}\n" if context else ""
-        system_instruction = f"{HYBRID_SYSTEM_PROMPT}{context_str}"
-        
-        logger.info(f"Initiating Uplink: {MODEL_ID}")
-        
-        response = await client.aio.models.generate_content(
-            model=MODEL_ID,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                temperature=0.7,
-                # Prevent runaway code blocks or prefixes
-                stop_sequences=["USER:", "\nUSER:", "User:", "\nUser:", "\n\nUSER:"]
-            )
-        )
-        
-        if not response.text:
-            return "..."
-            
-        return response.text.strip()
+    """Generates content with stable model usage (V41.17)."""
+    models_to_try = [PRIMARY_MODEL] + FALLBACK_MODELS
+    last_error = "Unknown error"
+    
+    context_str = f"\n[CONTEXT MEMORY]\n{json.dumps(context, indent=2)}\n" if context else ""
+    system_instruction = f"{HYBRID_SYSTEM_PROMPT}{context_str}"
 
-    except Exception as e:
-        logger.error(f"Engine Uplink Fault: {str(e)}")
-        return f"Operational Fault: {str(e)}"
+    for i, model_id in enumerate(models_to_try):
+        try:
+            # Staggered Retry: Wait 2s if not the first attempt to avoid RPM spikes
+            if i > 0:
+                await asyncio.sleep(2)
+                
+            logger.info(f"Initiating Uplink: {model_id}")
+            response = await client.aio.models.generate_content(
+                model=model_id,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    temperature=0.7,
+                    stop_sequences=["USER:", "\nUSER:", "User:", "\nUser:", "\n\nUSER:"]
+                )
+            )
+            
+            if response.text:
+                return response.text.strip()
+            
+            logger.warning(f"Engine Silence from {model_id}. Trying next...")
+            
+        except Exception as e:
+            err_str = str(e)
+            if "429" in err_str or "quota" in err_str.lower():
+                logger.warning(f"Quota Exhausted for {model_id}. Cascading to fallback...")
+                last_error = err_str
+                continue
+            elif "404" in err_str or "not found" in err_str.lower():
+                logger.warning(f"Model ID {model_id} not available. Skipping...")
+                continue
+            else:
+                logger.error(f"Uplink Fault on {model_id}: {err_str}")
+                return f"Operational Fault: {err_str}"
+
+    return f"Critical Service Outage: All model quotas exhausted. Last error: {last_error or 'Unknown Quota Issue'}"
 
 @app.post("/process")
 async def process_message(user_msg: UserMessage):
@@ -125,32 +149,26 @@ async def process_message(user_msg: UserMessage):
         
         raw_text = await generate_with_fallback(prompt, user_msg.context)
         
-        # --- Strict Execution Gate ---
-        execution_triggers = [
-            'create', 'delete', 'rename', 'move', 'copy', 'open', 'close', 'save', 'write', 'append', 'overwrite',
-            'summarize', 'search', 'find', 'cleanup', 'organize',
-            'focus', 'minimize', 'maximize', 'restore', 'arrange', 'volume', 'brightness', 'lock', 'sleep', 'status'
-        ]
-        user_text = user_msg.message.lower()
-        has_execution_intent = any(kw in user_text for kw in execution_triggers)
-
+        # --- Smart Intent Extraction (V41.11) ---
+        # We search for JSON regardless of keywords to handle typos and new verbs
         json_str = None
-        if has_execution_intent:
-            md_match = re.search(r'```json\s*(\{.*\})\s*```', raw_text, re.DOTALL)
-            if md_match:
-                json_str = md_match.group(1)
-            else:
-                improved_match = re.search(r'(\{\s*"mode":\s*"execution".*?\})', raw_text, re.DOTALL)
-                if improved_match:
-                    json_str = improved_match.group(1)
-            
-            if json_str:
-                try:
-                    potential_json = json.loads(json_str)
-                    if isinstance(potential_json, dict) and potential_json.get("mode") == "execution":
-                        return potential_json
-                except json.JSONDecodeError:
-                    pass
+        md_match = re.search(r'```json\s*(\{.*\})\s*```', raw_text, re.DOTALL)
+        if md_match:
+            json_str = md_match.group(1)
+        else:
+            # Fallback for models that skip the markdown fences
+            improved_match = re.search(r'(\{\s*"mode":\s*"execution".*?\})', raw_text, re.DOTALL)
+            if improved_match:
+                json_str = improved_match.group(1)
+        
+        if json_str:
+            try:
+                potential_json = json.loads(json_str)
+                if isinstance(potential_json, dict) and potential_json.get("mode") == "execution":
+                    # Ensure the response is cleaned of raw JSON if we return the dict
+                    return potential_json
+            except json.JSONDecodeError:
+                pass
 
         # --- Clean Conversational Response (V41.3) ---
         # 1. Strip all JSON blocks

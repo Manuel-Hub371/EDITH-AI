@@ -98,13 +98,16 @@ function spawnServices() {
 
     nodeProcess.stdout.on('data', (data) => logStream.write(`[NODE] ${data}`));
     nodeProcess.stderr.on('data', (data) => logStream.write(`[NODE_ERR] ${data}`));
-    nodeProcess.on('exit', (code) => log(`Node process exited with code ${code}`));
+    nodeProcess.on('exit', (code) => {
+        log(`Node process exited with code ${code}`);
+        if (code !== 0 && code !== null) {
+            log('Node crashed. Restarting in 2s...');
+            setTimeout(spawnServices, 2000);
+        }
+    });
     nodeProcess.on('error', (err) => log(`FAILED to spawn Node: ${err.message}`));
     childProcesses.push(nodeProcess);
 
-    /**
-     * 2. Spawn Python Core
-     */
     const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
     log(`Spawning Python: ${pythonCmd} [${PYTHON_ENTRY}]`);
 
@@ -116,7 +119,13 @@ function spawnServices() {
 
     pythonProcess.stdout.on('data', (data) => logStream.write(`[PYTHON] ${data}`));
     pythonProcess.stderr.on('data', (data) => logStream.write(`[PYTHON_ERR] ${data}`));
-    pythonProcess.on('exit', (code) => log(`Python process exited with code ${code}`));
+    pythonProcess.on('exit', (code) => {
+        log(`Python process exited with code ${code}`);
+        if (code !== 0 && code !== null) {
+            log('Python crashed. Restarting in 2s...');
+            setTimeout(spawnServices, 2000);
+        }
+    });
     pythonProcess.on('error', (err) => log(`FAILED to spawn Python: ${err.message}`));
     childProcesses.push(pythonProcess);
 
@@ -140,21 +149,33 @@ function checkBackend() {
         const req = http.get(`${NODE_SERVER_URL}/api/status`, (res) => {
             resolve(res.statusCode === 200);
         });
+        // 2s timeout for high-load resilience
+        req.setTimeout(2000, () => {
+            req.destroy();
+            resolve(false);
+        });
         req.on('error', () => resolve(false));
-        req.setTimeout(1000, () => { req.destroy(); resolve(false); });
     });
 }
 
 function startHealthPolling() {
+    let backendFailCount = 0;
     pollTimer = setInterval(async () => {
         const isUp = await checkBackend();
-        if (isUp !== backendReady) {
-            backendReady = isUp;
-            if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.webContents.send('backend-status', isUp ? 'up' : 'down');
+        if (isUp) {
+            if (!backendReady || backendFailCount >= 3) { // Only send 'up' if it was previously down or after initial connection
+                backendReady = true;
+                mainWindow?.webContents.send('backend-status', 'up');
+            }
+            backendFailCount = 0;
+        } else {
+            backendFailCount++;
+            if (backendReady && backendFailCount >= 3) { // Only send 'down' if it was previously up and failed 3 times
+                backendReady = false;
+                mainWindow?.webContents.send('backend-status', 'down');
             }
         }
-    }, 2000);
+    }, 5000);
 }
 
 // ── UI & App Lifecycle ────────────────────────────────────────────────────────

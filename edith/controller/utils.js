@@ -22,7 +22,7 @@ class Utils {
 
         // Path Healing: Catch and replace common placeholders hallucinated by AI
         const actualUser = os.userInfo().username;
-        const placeholders = ['yourusername', 'myusername', 'username', '<username>', 'user_name'];
+        const placeholders = ['yourusername', 'myusername', 'username', '<username>', 'user_name', '{username}', '{user}'];
         placeholders.forEach(p => {
             const regex = new RegExp(`\\\\${p}\\\\`, 'gi');
             expandedPath = expandedPath.replace(regex, `\\${actualUser}\\`);

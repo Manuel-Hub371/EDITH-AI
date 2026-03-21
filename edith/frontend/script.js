@@ -135,7 +135,7 @@ const ChatApp = {
                     aiBubble.classList.add('hologram-pulse');
                     
                     try {
-                        const execRes = await fetch('/api/execute', {
+                        const execRes = await fetch(`${API_BASE}/api/execute`, {
                             method: 'POST',
                             headers: API_CONFIG.headers,
                             body: JSON.stringify({ actions })
@@ -147,7 +147,7 @@ const ChatApp = {
                         aiBubble.textContent = execData.response || aiAction.response;
                     } catch (execErr) {
                         aiBubble.classList.remove('hologram-pulse');
-                        aiBubble.textContent = "Ran into a problem during execution.";
+                        aiBubble.textContent = `Execution Error: ${execErr.message}`;
                     }
                 }
                 

@@ -5,13 +5,14 @@ const path = require('path');
 const systemState = require('./system_state');
 
 /**
- * Event Listener (V38.1 Nervous System)
+ * Event Listener (V47.5 Nervous System)
  * Watches for OS events and emits them to the internal bus.
  */
 class SystemEventListener extends EventEmitter {
     constructor() {
         super();
         this.logPath = path.join(__dirname, '../logs/system_integration.log');
+        this.isRunning = false;
     }
 
     _log(event, metadata) {
@@ -20,9 +21,12 @@ class SystemEventListener extends EventEmitter {
     }
 
     /**
-     * Start watchers for important events (V38.1.2)
+     * Start watchers for important events
      */
     start() {
+        if (this.isRunning) return;
+        this.isRunning = true;
+
         this._watchNetwork();
         this._watchDownloads();
         this._watchProcesses();

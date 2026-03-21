@@ -1,29 +1,22 @@
-const { execSync, exec } = require('child_process');
+const psService = require('./powershell_service');
 const fs = require('fs');
 const path = require('path');
 const systemState = require('./system_state');
 
 /**
- * Window Manager (V38.1 Nervous System)
- * Native window orchestration via PowerShell for reliability.
+ * Window Manager (V47.1 Nervous System)
+ * Native window orchestration via shared PowerShellService.
  */
 class WindowManager {
     constructor() {
         this.logPath = path.join(__dirname, '../logs/system_integration.log');
+        this.ps = psService;
     }
 
     _log(action, parameters, result) {
         const timestamp = new Date().toISOString();
         const entry = `[${timestamp}] OS_WINDOW | ACTION: ${action} | TARGET: ${JSON.stringify(parameters)} | RESULT: ${result}\n`;
         fs.appendFileSync(this.logPath, entry);
-    }
-
-    _checkRate() {
-        const now = Date.now();
-        if (now - this.lastActionTime < this.rateLimit) {
-            throw new Error("RATE_LIMIT: Too many window actions. Stabilizing...");
-        }
-        this.lastActionTime = now;
     }
 
     /**
@@ -40,7 +33,7 @@ class WindowManager {
      * Get active window info using PowerShell - Optimized (V38.1.1)
      */
     async getActiveWindow() {
-        return new Promise((resolve) => {
+        try {
             const script = `
             Add-Type -TypeDefinition "
             using System;
@@ -57,17 +50,13 @@ class WindowManager {
             $sb.ToString();
             `;
             
-            const psCall = new Promise((innerResolve) => {
-                exec(`powershell -Command "${script.replace(/\n/g, '')}"`, (error, stdout) => {
-                    const title = stdout.trim();
-                    const info = { title, owner: "unknown", bounds: { x: 0, y: 0, width: 0, height: 0 } };
-                    systemState.update('active_window', info);
-                    innerResolve(info);
-                });
-            });
-
-            this._withTimeout(psCall, 3000, 'GET_ACTIVE').then(resolve).catch(() => resolve({ title: "unknown" }));
-        });
+            const title = await this.ps.execute(script);
+            const info = { title, owner: "unknown", bounds: { x: 0, y: 0, width: 0, height: 0 } };
+            systemState.update('active_window', info);
+            return info;
+        } catch (e) {
+            return { title: "unknown" };
+        }
     }
 
     /**
@@ -82,25 +71,19 @@ class WindowManager {
 
         for (let i = 0; i < retries; i++) {
             const script = `
-            $target = "${target}";
-            $pid = "${pid || 0}";
+            $target = '${target}';
+            $pid = '${pid || 0}';
             $apps = Get-Process | Where-Object { 
                 ($_.Id -eq $pid) -or 
-                ($_.ProcessName -like "*$target*") -or 
-                ($_.MainWindowTitle -like "*$target*")
+                ($_.ProcessName -like '*$target*') -or 
+                ($_.MainWindowTitle -like '*$target*')
             } | Where-Object { $_.MainWindowHandle -ne 0 };
             
-            if ($apps) { $apps[0].MainWindowHandle } else { "0" }
+            if ($apps) { $apps[0].MainWindowHandle } else { '0' }
             `;
 
-            const handle = await new Promise(resolve => {
-                exec(`powershell -Command "${script.replace(/\n/g, '')}"`, (error, stdout) => {
-                    const out = (stdout || "0").trim();
-                    resolve(out !== "0" ? out : null);
-                });
-            });
-            
-            if (handle) return handle;
+            const handle = await this.ps.execute(script);
+            if (handle && handle !== "0") return handle;
             if (i < retries - 1) await new Promise(r => setTimeout(r, delay));
         }
 
@@ -111,117 +94,100 @@ class WindowManager {
      * Focus application window
      */
     async focusWindow(appName) {
-        this._checkRate();
         const handle = await this._getHandle(appName);
         if (!handle) throw new Error(`Window handle not found for: ${appName}`);
 
-        return new Promise((resolve, reject) => {
-            const script = `
-            $wshell = New-Object -ComObject WScript.Shell;
-            $apps = Get-Process | Where-Object { $_.MainWindowHandle -eq ${handle} };
-            if ($apps) {
-                $wshell.AppActivate($apps[0].Id);
-                "SUCCESS"
-            } else { "NOT_FOUND" }
-            `;
-            exec(`powershell -Command "${script.replace(/\n/g, '')}"`, (error, stdout) => {
-                if (stdout.includes("SUCCESS")) {
-                    this._log('focusWindow', { appName }, 'SUCCESS');
-                    resolve(`Focused: ${appName}`);
-                } else {
-                    reject(new Error(`Window not found: ${appName}`));
-                }
-            });
-        });
+        const script = `
+        $wshell = New-Object -ComObject WScript.Shell;
+        $apps = Get-Process | Where-Object { $_.MainWindowHandle -eq ${handle} };
+        if ($apps) {
+            $wshell.AppActivate($apps[0].Id);
+            "SUCCESS"
+        } else { "NOT_FOUND" }
+        `;
+        
+        const result = await this.ps.execute(script);
+        if (result.includes("SUCCESS")) {
+            this._log('focusWindow', { appName }, 'SUCCESS');
+            return `Focused: ${appName}`;
+        } else {
+            throw new Error(`Window not found: ${appName}`);
+        }
     }
 
     /**
      * Minimize window
      */
     async minimizeWindow(appName) {
-        this._checkRate();
         const handle = await this._getHandle(appName);
         if (!handle) throw new Error(`Window not found: ${appName}`);
 
-        return new Promise((resolve, reject) => {
-            const script = `
-            Add-Type -TypeDefinition "
-            using System;
-            using System.Runtime.InteropServices;
-            public class User32 {
-                [DllImport(\\"user32.dll\\")]
-                public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-            }";
-            [User32]::ShowWindow(${handle}, 6) | Out-Null; # 6 = SW_MINIMIZE
-            "SUCCESS"
-            `;
-            exec(`powershell -Command "${script.replace(/\n/g, '')}"`, (error, stdout) => {
-                this._log('minimizeWindow', { appName }, 'SUCCESS');
-                resolve(`Minimized: ${appName}`);
-            });
-        });
+        const script = `
+        Add-Type -TypeDefinition "
+        using System;
+        using System.Runtime.InteropServices;
+        public class User32 {
+            [DllImport(\\"user32.dll\\")]
+            public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        }";
+        [User32]::ShowWindow(${handle}, 6) | Out-Null; # 6 = SW_MINIMIZE
+        "SUCCESS"
+        `;
+        await this.ps.execute(script);
+        this._log('minimizeWindow', { appName }, 'SUCCESS');
+        return `Minimized: ${appName}`;
     }
 
     /**
      * Maximize window
      */
     async maximizeWindow(appName) {
-        this._checkRate();
         const handle = await this._getHandle(appName);
         if (!handle) throw new Error(`Window not found: ${appName}`);
 
-        return new Promise((resolve, reject) => {
-            const script = `
-            Add-Type -TypeDefinition "
-            using System;
-            using System.Runtime.InteropServices;
-            public class User32 {
-                [DllImport(\\"user32.dll\\")]
-                public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-            }";
-            [User32]::ShowWindow(${handle}, 3) | Out-Null; # 3 = SW_MAXIMIZE
-            "SUCCESS"
-            `;
-            exec(`powershell -Command "${script.replace(/\n/g, '')}"`, (error, stdout) => {
-                this._log('maximizeWindow', { appName }, 'SUCCESS');
-                resolve(`Maximized: ${appName}`);
-            });
-        });
+        const script = `
+        Add-Type -TypeDefinition "
+        using System;
+        using System.Runtime.InteropServices;
+        public class User32 {
+            [DllImport(\\"user32.dll\\")]
+            public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        }";
+        [User32]::ShowWindow(${handle}, 3) | Out-Null; # 3 = SW_MAXIMIZE
+        "SUCCESS"
+        `;
+        await this.ps.execute(script);
+        this._log('maximizeWindow', { appName }, 'SUCCESS');
+        return `Maximized: ${appName}`;
     }
 
     /**
      * Restore window from min/max
      */
     async restoreWindow(appName) {
-        this._checkRate();
         const handle = await this._getHandle(appName);
         if (!handle) throw new Error(`Window not found: ${appName}`);
 
-        return new Promise((resolve, reject) => {
-            const script = `
-            Add-Type -TypeDefinition "
-            using System;
-            using System.Runtime.InteropServices;
-            public class User32 {
-                [DllImport(\\"user32.dll\\")]
-                public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-            }";
-            [User32]::ShowWindow(${handle}, 9) | Out-Null; # 9 = SW_RESTORE
-            "SUCCESS"
-            `;
-            exec(`powershell -Command "${script.replace(/\n/g, '')}"`, (error, stdout) => {
-                this._log('restoreWindow', { appName }, 'SUCCESS');
-                resolve(`Restored: ${appName}`);
-            });
-        });
+        const script = `
+        Add-Type -TypeDefinition "
+        using System;
+        using System.Runtime.InteropServices;
+        public class User32 {
+            [DllImport(\\"user32.dll\\")]
+            public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        }";
+        [User32]::ShowWindow(${handle}, 9) | Out-Null; # 9 = SW_RESTORE
+        "SUCCESS"
+        `;
+        await this.ps.execute(script);
+        this._log('restoreWindow', { appName }, 'SUCCESS');
+        return `Restored: ${appName}`;
     }
 
     /**
      * Resize and Move window with boundary checks (V38.1.2)
      */
     async setWindowBounds(appName, x, y, width, height) {
-        this._checkRate();
-        
         // 1. Get Screen Resolution for boundary check
         const screen = await this._getScreenResolution();
         const handle = await this._getHandle(appName);
@@ -233,51 +199,44 @@ class WindowManager {
         const finalW = Math.max(200, Math.min(width, screen.width - finalX));
         const finalH = Math.max(200, Math.min(height, screen.height - finalY));
 
-        return new Promise((resolve, reject) => {
-            const script = `
-            Add-Type -TypeDefinition "
-            using System;
-            using System.Runtime.InteropServices;
-            public class User32 {
-                [DllImport(\\"user32.dll\\")]
-                public static extern bool MoveWindow(IntPtr hWnd, int x, int y, int nWidth, int nHeight, bool bRepaint);
-            }";
-            [User32]::MoveWindow(${handle}, ${finalX}, ${finalY}, ${finalW}, ${finalH}, $true) | Out-Null;
-            "SUCCESS"
-            `;
-            exec(`powershell -Command "${script.replace(/\n/g, '')}"`, (error, stdout) => {
-                const params = { x: finalX, y: finalY, w: finalW, h: finalH };
-                this._log('setWindowBounds', { appName, ...params }, 'SUCCESS');
-                resolve(`Moved/Resized: ${appName} to ${finalX},${finalY} (${finalW}x${finalH})`);
-            });
-        });
+        const script = `
+        Add-Type -TypeDefinition "
+        using System;
+        using System.Runtime.InteropServices;
+        public class User32 {
+            [DllImport(\\"user32.dll\\")]
+            public static extern bool MoveWindow(IntPtr hWnd, int x, int y, int nWidth, int nHeight, bool bRepaint);
+        }";
+        [User32]::MoveWindow(${handle}, ${finalX}, ${finalY}, ${finalW}, ${finalH}, $true) | Out-Null;
+        "SUCCESS"
+        `;
+        await this.ps.execute(script);
+        const params = { x: finalX, y: finalY, w: finalW, h: finalH };
+        this._log('setWindowBounds', { appName, ...params }, 'SUCCESS');
+        return `Moved/Resized: ${appName} to ${finalX},${finalY} (${finalW}x${finalH})`;
     }
 
     async _getScreenResolution() {
-        return new Promise((resolve) => {
-            const script = '[System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width; [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Height';
-            exec(`powershell -Command "Add-Type -AssemblyName System.Windows.Forms; ${script}"`, (error, stdout) => {
-                const parts = stdout.trim().split(/\s+/);
-                resolve({
-                    width: parseInt(parts[0]) || 1920,
-                    height: parseInt(parts[1]) || 1080
-                });
-            });
-        });
+        const script = '[System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Width; [System.Windows.Forms.Screen]::PrimaryScreen.Bounds.Height';
+        const stdout = await this.ps.execute(`Add-Type -AssemblyName System.Windows.Forms; ${script}`);
+        const parts = stdout.trim().split(/\s+/);
+        return {
+            width: parseInt(parts[0]) || 1920,
+            height: parseInt(parts[1]) || 1080
+        };
     }
 
     /**
      * Arrange Workspace Layout
      */
     async arrangeWorkspace(layout) {
-        this._checkRate();
         if (layout === 'split-vertical') {
-             exec(`powershell -Command "(New-Object -ComObject Shell.Application).TileVertically()"`);
+             await this.ps.execute("(New-Object -ComObject Shell.Application).TileVertically()");
              this._log('arrangeWorkspace', { layout }, 'SUCCESS');
              return "Arranged windows vertically.";
         }
         if (layout === 'split-horizontal') {
-             exec(`powershell -Command "(New-Object -ComObject Shell.Application).TileHorizontally()"`);
+             await this.ps.execute("(New-Object -ComObject Shell.Application).TileHorizontally()");
              this._log('arrangeWorkspace', { layout }, 'SUCCESS');
              return "Arranged windows horizontally.";
         }

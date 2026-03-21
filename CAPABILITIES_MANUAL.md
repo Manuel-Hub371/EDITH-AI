@@ -1,89 +1,80 @@
-# EDITH AI | Capabilities Manual (V38.1.3)
+# EDITH AI | Capabilities Manual (V42.7)
 
-EDITH is a modular, intent-driven AI desktop agent — built for natural conversation and deep, real-time Windows OS integration.
-
----
-
-## 1. Interaction Modes & Personality
-
-EDITH operates with **Dual-Mode Intelligence** backed by a modular execution pipeline:
-
-- **🗣️ Conversational Mode**: Natural, human-like dialogue. No chatbot jargon. Uses "True Vision" to perceive your system state.
-- **🛠️ Execution Mode**: Structured intent pipeline. Parses complex requests into precise OS actions.
-- **🧠 Cognitive Bridge**: Real-time hardware telemetry is injected directly into EDITH's cognition, giving her "eyes" on your PC.
+EDITH is a production-hardened, intent-driven AI desktop agent — built for natural human conversation and deep, self-healing Windows OS integration.
 
 ---
 
-## 2. Intent Detection Engine (V38.1.3 Standard)
+## 1. Interaction Modes & Personality (Refined V41.8)
 
-| Intent | Description |
+EDITH operates with **Human-Centric Intelligence** designed to feel like a collaborator, not a tool:
+
+- **🗣️ Natural Conversationalist**: Direct, informal, and human. No "AI-style" prefixes, poetic filler, or performative warmth.
+- **🚫 Anti-Data-Dump Policy**: Unlike generic bots, EDITH will never volunteer technical percentages (CPU/RAM/Apps) unless you specifically ask "How's my PC?" or if it's necessary to explain a delay. 
+- **🧠 System Vision**: Real-time hardware telemetry is injected directly into her context, allowing her to "perceive" your system state without needing manual commands.
+
+---
+
+## 2. Self-Healing Nervous System (V41.9)
+
+EDITH features a **High-Availability Architecture** designed for zero-failure production environments:
+
+- **⚡ Auto-Restart Logic**: Both the Node.js controller and the Python AI engine are monitored 24/7. If a service exits unexpectedly, EDITH revives it within 2 seconds automatically.
+- **🛡️ 3-Strike Resilience**: To prevent "false positive" disconnections during temporary CPU spikes, the frontend uses a "Fail-Soft" policy. It ignores lag spikes and only alerts the user if the backend fails to respond 3 times consecutively (15s window).
+- **📐 Solid-State Execution**: Services are spawned directly by the Electron shell using strictly controlled `spawn` arguments, ensuring native path resilience (handles "EDITH AI" spaces) and absolute path stability.
+
+---
+
+## 3. Advanced AI Engine (V41.18 Quota Resilience)
+
+The cognitive layer uses a **High-Resiliency Model Registry** to ensure 100% uptime on the Google Free Tier:
+
+| Priority | Model | Logic |
+| :--- | :--- | :--- |
+| **Primary** | `models/gemini-flash-latest` | **1500 Requests/Day**. The stable workhorse of EDITH. |
+| **Fallback 1** | `models/gemini-2.0-flash` | State-of-the-art reasoning for complex tasks. |
+| **Fallback 2** | `models/gemini-2.5-flash` | Ultra-high capacity backup tier. |
+
+*Auto-Resilience: If a model hits a quota limit, EDITH rotates through her registry with a 2-second staggered delay, ensuring continuous service.*
+
+---
+
+## 4. Smart Universal Launcher (V46.5)
+
+EDITH features an adaptive, intent-driven launcher with 100% OS coverage:
+
+- **🌐 UWP & Modern Apps**: Native support for **Settings, Store, Calculator, Photos**, etc., using URI protocols and high-performance **AppUserModelID** discovery.
+- **🧠 Sibling Resolution**: Automatically resolves script-launchers (e.g., `code.cmd`) to their native **`.exe`** siblings for safety and PID tracking.
+- **🔗 Shortcut Dereferencing**: Native support for **`.lnk`** files — EDITH resolves them to the absolute target executable using COM.
+- **🚫 Security Blocklist**: Strictly forbids execution of unsafe file types (**`.cmd`, `.bat`, `.ps1`, etc.**) unless they can be resolved to a native executable.
+- **🛰️ Dynamic Discovery**: If an app is unknown, EDITH dynamically scans `Program Files` and the **Start Menu** using high-speed PowerShell logic.
+- **🎯 PID Tracking**: Classic executables are tracked by PID, while modern apps are launched via the System Broker.
+
+| Supported Intent | Description |
 | :--- | :--- |
-| `OPEN_APPLICATION` | Launch registered apps or absolute paths |
-| `CLOSE_APPLICATION` | Terminate applications safely (Protected: Explorer, Winlogon) |
-| `WINDOW_MANAGEMENT` | FOCUS, MINIMIZE, MAXIMIZE, RESTORE |
-| `RESIZE_WINDOW` | Change window dimensions (width, height) |
-| `MOVE_WINDOW` | Reposition window (x, y) with boundary validation |
-| `ARRANGE_WINDOWS` | Split-screen or workspace orchestration |
-| `FILE_SYSTEM` | CREATE, DELETE, MOVE, READ, SEARCH, SUMMARIZE |
-| `SYSTEM_CONTROL` | VOLUME, BRIGHTNESS, LOCK, SLEEP |
+| `OPEN_APPLICATION` | Automatically discover and launch any installed app |
+| `CLOSE_APPLICATION` | Terminate specific instances via PID or Name |
+| `WINDOW_MANAGEMENT` | Native User32 interaction (Focus, Min/Max, Resize) |
+| `FILE_SYSTEM` | Adaptive Path Healing (Supports OneDrive redirection) |
 
 ---
 
-## 3. Nervous System (System Integration Layer V38.1.3)
+## 5. Nervous System (System Integration Layer)
 
-EDITH's **Nervous System (SIL)** is a high-performance bridge providing deep host connectivity:
-
-- **📸 Real-time Vision (Telemetry)**:
-  - **State Cache**: Unified snapshot of CPU, RAM, Battery, 300+ Processes, and Disks.
-  - **Heartbeat**: 3-second refresh cycle with 10s timeout guards for stability.
-- **⚡ Reactive OS Events (WMI)**:
-  - **Process Watcher**: Instant detection of application starts and stops.
-  - **Hardware Watcher**: Real-time notification of USB device connections.
-  - **Download Watcher**: Automatic awareness of new files in Downloads.
-- **🛰️ System Bridge API**:
-  - `GET /system/status`: Returns the live real-time system snapshot.
-  - `POST /system/resize`: Precise window bounds management.
+- **📸 Real-time Telemetry**: Throttled 10s heartbeat for CPU/RAM/Battery ensures high system responsiveness.
+- **📡 System Bridge API**: Staggered service startup prevents CPU congestion during initialization.
+- **🛰️ Diagnostics**: Real-time error transparency reveals the exact cause of execution failures.
 
 ---
 
-## 4. Advanced Window Orchestration
-
-Leveraging optimized PowerShell .NET interop, EDITH provides surgical control:
-
-- **📐 Precise Bounds**: Resize and Move windows to exact coordinates.
-- **🛡️ Boundary Validation**: Windows are hardware-locked to your primary display area; they cannot be moved "off-screen."
-- **🖼️ Layouts**: Built-in support for `split-horizontal` and workspace cleanup.
-
----
-
-## 5. Security & Safety Hub
-
-A multi-layered barrier protects the integrity of your host:
-
-- **🛡️ Directory Guard**: System directories (Windows, System32) are strictly protected.
-- **🚫 PID Tracking**: EDITH tracks her own launched processes to manage them safely.
-- **🛡️ Graceful Close**: Uses PID-based termination with no force-kill unless requested.
-- **🔐 extension Block**: Dangerous file types are intercepted by the sandbox.
-
----
-
-## 6. Path Healing & Hallucination Guard
-
-- **Variable Healing**: Automatically resolves `%USERPROFILE%` and `C:\Users\yourusername`.
-- **Context Memory**: Resolves "it", "that", "this" based on your most recent activity.
-
----
-
-## 7. Technical Stack
+## 6. Technical Stack (Production Build)
 
 | Component | Technology | Role |
 | :--- | :--- | :--- |
-| **Frontend** | Vanilla JS / CSS3 | Modern Glassmorphism UI |
-| **Orchestration** | Node.js (Express) | Intent Dispatcher / Context |
-| **Nervous System** | PowerShell / WMI | Deep OS Hooks & Window Control |
-| **Telemetry** | systeminformation | Hardware & Resource monitoring |
-| **AI Engine** | Python (Gemma-3) | Cognitive reasoning & Task planning |
+| **Shell** | Electron (.exe) | Desktop Container & Service Manager |
+| **Backend** | Node.js (v22+) | Intent Dispatcher / Health Monitor |
+| **Cognition** | Python (3.11+) | Gemini-Integrated AI Engine |
+| **Delivery** | Standalone Packaging | No external Node.js/Python installation required |
 
 ---
 
-*EDITH V38.1.3 — Finalized Deep Integration Build.*
+*EDITH V42.7 — The Definitive Adaptive Build.*

@@ -56,6 +56,11 @@ class ActionDispatcher {
         const { intent, path: targetPath, name, parameters } = action;
         const target = targetPath || name || parameters?.path || parameters?.app || parameters?.target || '';
         
+        // Parameter Normalization (V41.14): Ensure plugins see parameters at top level
+        if (target && !action.path && !action.name) action.path = target; 
+        if (parameters?.content && !action.content) action.content = parameters.content;
+        if (parameters?.destination && !action.destination) action.destination = parameters.destination;
+        
         // 1. Safety & Risk Gate
         const risk = this._getRiskLevel(action);
         if (risk === 'FORBIDDEN') this.sandbox.validate(target, intent);

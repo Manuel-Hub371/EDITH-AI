@@ -1,12 +1,15 @@
 const systemState = require('./system_state');
-const processManager = require('./process_manager');
+const processManager = require('../core/launcher/processManager');
 const windowManager = require('./window_manager');
 const systemMonitor = require('./system_monitor');
 const eventListener = require('./event_listener');
+const Utils = require('../controller/utils');
+
+const psService = require('./powershell_service');
 
 /**
- * System Integration Hub (V38.1 Nervous System)
- * Central orchestrator for all OS-level integration.
+ * System Integration Hub (V47.1 Nervous System)
+ * Central orchestrator for all OS-level integration and service provision.
  */
 class SystemIntegrationHub {
     constructor() {
@@ -15,13 +18,22 @@ class SystemIntegrationHub {
         this.windowManager = windowManager;
         this.monitor = systemMonitor;
         this.events = eventListener;
+        this.utils = new Utils();
+        this.ps = psService;
         this.isInitialized = false;
         
-        // --- Rate Limiting (V38.1.4) ---
+        // --- Rate Limiting (Unified Gateway) ---
         this.limits = {
-            window: { count: 0, lastReset: Date.now(), max: 3 },
-            process: { count: 0, lastReset: Date.now(), max: 2 }
+            window: { count: 0, lastReset: Date.now(), max: 5 },
+            process: { count: 0, lastReset: Date.now(), max: 3 }
         };
+    }
+
+    /**
+     * Unified PowerShell Execution Engine (Passthrough V47.1)
+     */
+    async executePowerShell(script) {
+        return this.ps.execute(script);
     }
 
     /**
@@ -85,13 +97,17 @@ class SystemIntegrationHub {
             this.monitor.start();
             this.events.start();
 
-            // Parallel initial sync
+            // Parallel initial sync (Essential Static/Dynamic only)
             await Promise.all([
-                this.monitor.refreshOsStatic().catch(() => {}), // One-time OS info
+                this.monitor.refreshOsStatic().catch(() => {}),
                 this.monitor.refreshState().catch(() => {}),
-                this.windowManager.getActiveWindow().catch(() => {}),
-                this.processManager.getRunningProcesses().catch(() => {})
+                this.windowManager.getActiveWindow().catch(() => {})
             ]);
+
+            // Secondary sync (Heavier data, staggered)
+            setTimeout(() => {
+                this.processManager.getRunningProcesses().catch(() => {});
+            }, 5000);
         } catch (err) {
             console.error('[SIL Hub] Init Error:', err.message);
         }
@@ -110,7 +126,10 @@ class SystemIntegrationHub {
      */
     async execute(action) {
         const { intent, parameters } = action;
-        const target = parameters?.app || parameters?.target || parameters?.path;
+        const rawTarget = parameters?.app || parameters?.target || parameters?.path;
+        
+        // --- Centralized Sanitization & Expansion (V47.1) ---
+        const target = this.utils.getSafePath(rawTarget);
         
         if (!this.isInitialized) await this.initialize();
 
@@ -119,7 +138,7 @@ class SystemIntegrationHub {
             case 'EMERGENCY_STOP':
                 return await this.emergencyStop();
 
-            // PROCESS & PATH (Rate Limit: 2/sec)
+            // PROCESS & PATH (Rate Limit: 3/sec)
             case 'OPEN_APPLICATION':
                 this._enforceRate('process');
                 return await this.processManager.launchApplication(target);

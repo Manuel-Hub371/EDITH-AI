@@ -1,0 +1,13 @@
+{
+  "chrome": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "vscode": "C:\\Users\\USER\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe",
+  "notepad": "C:\\Windows\\System32\\notepad.exe",
+  "calculator": "C:\\Windows\\System32\\calc.exe",
+  "explorer": "C:\\Windows\\explorer.exe",
+  "taskmgr": "C:\\Windows\\System32\\Taskmgr.exe",
+  "mspaint": "C:\\Users\\USER\\AppData\\Local\\Microsoft\\WindowsApps\\mspaint.exe",
+  "calc": "C:\\WINDOWS\\System32\\calc.exe",
+  "code": "C:\\Users\\USER\\AppData\\Local\\Programs\\Microsoft VS Code\\bin\\code.cmd",
+  "photos": "uwp:Microsoft.Windows.Photos_8wekyb3d8bbwe!App",
+  "camera": "uwp:Microsoft.WindowsCamera_8wekyb3d8bbwe!App"
+}
