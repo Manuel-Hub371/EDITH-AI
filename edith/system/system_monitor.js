@@ -2,7 +2,7 @@ const si = require('systeminformation');
 const systemState = require('./system_state');
 const fs = require('fs');
 const path = require('path');
-const processScanner = require('../core/launcher/processScanner');
+const processManager = require('../core/launcher/processManager');
 
 /**
  * System Monitor (V38.1 Nervous System)
@@ -30,7 +30,7 @@ class SystemMonitor {
         
         this.interval = setInterval(async () => {
             await this.refreshState();
-        }, 10000); // 10s heartbeat
+        }, 15000); // 15s heartbeat (Hardware Stats)
         
         // Decoupled Disk Polling (60s cycle)
         setInterval(async () => {
@@ -45,6 +45,14 @@ class SystemMonitor {
                 systemState.update('disks', diskUsage);
             } catch (e) { /* ignore */ }
         }, 60000);
+
+        // Decoupled Process Scanning (30s cycle - OS Native)
+        setInterval(async () => {
+            try {
+                const apps = await processManager.getRunningProcesses().catch(() => []);
+                systemState.update('running_apps', apps);
+            } catch (e) { /* ignore */ }
+        }, 30000);
     }
 
     stop() {
@@ -74,12 +82,10 @@ class SystemMonitor {
                 this._withTimeout(si.mem(), 10000, 'MEM').catch(() => ({ total: 0, used: 0, active: 0 })),
                 this._withTimeout(si.battery(), 10000, 'BAT').catch(() => ({ percent: 0, isCharging: false })),
                 this._withTimeout(si.networkInterfaces(), 10000, 'NET').catch(() => []),
-                this._withTimeout(si.time(), 5000, 'TIME').catch(() => ({ uptime: 0 })),
-                processScanner.scan().catch(() => [])
+                this._withTimeout(si.time(), 5000, 'TIME').catch(() => ({ uptime: 0 }))
             ];
 
-            const [cpu, mem, battery, network, time, apps] = await Promise.all(syncs);
-            systemState.update('running_apps', apps);
+            const [cpu, mem, battery, network, time] = await Promise.all(syncs);
 
             const telemetry = {
                 cpu_load: Math.round(cpu.currentLoad || 0),

@@ -125,12 +125,10 @@ const ChatApp = {
                 
                 // 1. Show the Initial Acknowledgement
                 aiBubble.classList.remove('hologram-pulse');
-                aiBubble.textContent = aiAction.response || '';
+                aiBubble.textContent = aiAction.message || aiAction.response || '';
                 
-                // 2. Handle Execution Flow (V38.0: reads 'actions' array)
-                const actions = aiAction.actions || [];
-                
-                if (aiAction.mode === 'execution' && actions.length > 0) {
+                // 2. Handle Execution Flow
+                if (aiAction.mode === 'execution' && aiAction.intent) {
                     // Enter Execution Phase
                     aiBubble.classList.add('hologram-pulse');
                     
@@ -138,13 +136,31 @@ const ChatApp = {
                         const execRes = await fetch(`${API_BASE}/api/execute`, {
                             method: 'POST',
                             headers: API_CONFIG.headers,
-                            body: JSON.stringify({ actions })
+                            body: JSON.stringify({ action: aiAction, sessionId: this.sessionId })
                         });
-                        const execData = await execRes.json();
-                        
+                        let execData = await execRes.json();
+
+                        // Auto-confirm HIGH-risk actions (sandbox flow)
+                        if (execData.status === 'NEED_CONFIRMATION' && execData.actionId) {
+                            aiBubble.textContent = `⚠️ Confirming: ${execData.message}`;
+                            const confirmRes = await fetch(`${API_BASE}/api/execute/confirm`, {
+                                method: 'POST',
+                                headers: API_CONFIG.headers,
+                                body: JSON.stringify({ actionId: execData.actionId, confirmed: true })
+                            });
+                            execData = await confirmRes.json();
+                        }
+
+                        // Handle low-confidence multiple-match choice
+                        if (execData.status === 'NEED_CHOICE') {
+                            aiBubble.classList.remove('hologram-pulse');
+                            aiBubble.textContent = execData.message || 'Multiple matches found. Please clarify.';
+                            return;
+                        }
+
                         // 3. Replace Acknowledgement with Final Result
                         aiBubble.classList.remove('hologram-pulse');
-                        aiBubble.textContent = execData.response || aiAction.response;
+                        aiBubble.textContent = execData.message || aiAction.message || 'Done.';
                     } catch (execErr) {
                         aiBubble.classList.remove('hologram-pulse');
                         aiBubble.textContent = `Execution Error: ${execErr.message}`;

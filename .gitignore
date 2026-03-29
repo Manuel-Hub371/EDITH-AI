@@ -1,22 +1,26 @@
-# Dependencies
-node_modules/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env/
+
+# Workspace
+.vscode/
+.idea/
+
+# EDITH Specific
+edith/logs/
+edith/brain/
+*.log
 
 # Build artifacts
 dist/
 release/
+node_modules/
 
-# Environment secrets (CRITICAL)
-.env
-.env.local
-
-# Logs
-edith/logs/
-*.log
-
-# System files
-.appData/
-.DS_Store
-Thumbs.db
-
-# Test scripts
-test_safety_v4.js
+# Test artifacts
+tests/*.json
+model_test_results.json

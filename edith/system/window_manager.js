@@ -4,7 +4,7 @@ const path = require('path');
 const systemState = require('./system_state');
 
 /**
- * Window Manager (V47.1 Nervous System)
+ * Window Manager (V53.3 Nervous System)
  * Native window orchestration via shared PowerShellService.
  */
 class WindowManager {
@@ -62,31 +62,17 @@ class WindowManager {
     /**
      * Internal helper to resolve window handles with retries (V38.1.6)
      */
-    async _getHandle(target, retries = 4, delay = 500) {
+    async _getHandle(target, retries = 5, delay = 800) {
         if (!target) return null;
-
-        const edithApps = systemState.get('edith_processes') || [];
-        const matchedApp = edithApps.find(a => a.pid == target || path.basename(a.path).toLowerCase().includes(target.toLowerCase()));
-        const pid = matchedApp ? matchedApp.pid : (isNaN(parseInt(target)) ? null : parseInt(target));
+        const clean = target.replace(/"/g, '').replace(/'/g, '');
 
         for (let i = 0; i < retries; i++) {
-            const script = `
-            $target = '${target}';
-            $pid = '${pid || 0}';
-            $apps = Get-Process | Where-Object { 
-                ($_.Id -eq $pid) -or 
-                ($_.ProcessName -like '*$target*') -or 
-                ($_.MainWindowTitle -like '*$target*')
-            } | Where-Object { $_.MainWindowHandle -ne 0 };
-            
-            if ($apps) { $apps[0].MainWindowHandle } else { '0' }
-            `;
-
-            const handle = await this.ps.execute(script);
-            if (handle && handle !== "0") return handle;
+            // Single-line PS command avoids multi-line collapse issues. Use single quotes for inner strings.
+            const script = `Get-Process | Where-Object { ($_.ProcessName -like '*${clean}*') -or ($_.MainWindowTitle -like '*${clean}*') } | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1 -ExpandProperty MainWindowHandle`;
+            const handle = await this.ps.execute(script).catch(() => null);
+            if (handle && handle.trim() && handle.trim() !== '0') return handle.trim();
             if (i < retries - 1) await new Promise(r => setTimeout(r, delay));
         }
-
         return null;
     }
 
@@ -116,72 +102,69 @@ class WindowManager {
     }
 
     /**
-     * Minimize window
+     * Minimize window (V53.3 - ShowWindow 6)
      */
     async minimizeWindow(appName) {
         const handle = await this._getHandle(appName);
-        if (!handle) throw new Error(`Window not found: ${appName}`);
+        if (!handle) throw new Error(`Window handle not found for: ${appName}`);
 
         const script = `
-        Add-Type -TypeDefinition "
-        using System;
-        using System.Runtime.InteropServices;
-        public class User32 {
-            [DllImport(\\"user32.dll\\")]
+        If (-NOT ([System.Management.Automation.PSTypeName]'Win32Functions.user32').Type) {
+            Add-Type -MemberDefinition @"
+            [DllImport("user32.dll")]
             public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-        }";
-        [User32]::ShowWindow(${handle}, 6) | Out-Null; # 6 = SW_MINIMIZE
-        "SUCCESS"
+"@ -Name "user32" -Namespace Win32Functions
+        }
+        [Win32Functions.user32]::ShowWindow(${handle}, 6) | Out-Null; "SUCCESS"
         `;
+        
         await this.ps.execute(script);
         this._log('minimizeWindow', { appName }, 'SUCCESS');
-        return `Minimized: ${appName}`;
+        return `${appName.charAt(0).toUpperCase() + appName.slice(1)} minimized successfully`;
     }
 
     /**
-     * Maximize window
+     * Maximize window (V53.3 - ShowWindow 3)
      */
     async maximizeWindow(appName) {
         const handle = await this._getHandle(appName);
-        if (!handle) throw new Error(`Window not found: ${appName}`);
+        if (!handle) throw new Error(`Window handle not found for: ${appName}`);
 
         const script = `
-        Add-Type -TypeDefinition "
-        using System;
-        using System.Runtime.InteropServices;
-        public class User32 {
-            [DllImport(\\"user32.dll\\")]
+        If (-NOT ([System.Management.Automation.PSTypeName]'Win32Functions.user32').Type) {
+            Add-Type -MemberDefinition @"
+            [DllImport("user32.dll")]
             public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-        }";
-        [User32]::ShowWindow(${handle}, 3) | Out-Null; # 3 = SW_MAXIMIZE
-        "SUCCESS"
+"@ -Name "user32" -Namespace Win32Functions
+        }
+        [Win32Functions.user32]::ShowWindow(${handle}, 3) | Out-Null; "SUCCESS"
         `;
+        
         await this.ps.execute(script);
         this._log('maximizeWindow', { appName }, 'SUCCESS');
-        return `Maximized: ${appName}`;
+        return `${appName.charAt(0).toUpperCase() + appName.slice(1)} maximized successfully`;
     }
 
     /**
-     * Restore window from min/max
+     * Restore window (V53.3 - ShowWindow 9)
      */
     async restoreWindow(appName) {
         const handle = await this._getHandle(appName);
-        if (!handle) throw new Error(`Window not found: ${appName}`);
+        if (!handle) throw new Error(`Window handle not found for: ${appName}`);
 
         const script = `
-        Add-Type -TypeDefinition "
-        using System;
-        using System.Runtime.InteropServices;
-        public class User32 {
-            [DllImport(\\"user32.dll\\")]
+        If (-NOT ([System.Management.Automation.PSTypeName]'Win32Functions.user32').Type) {
+            Add-Type -MemberDefinition @"
+            [DllImport("user32.dll")]
             public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-        }";
-        [User32]::ShowWindow(${handle}, 9) | Out-Null; # 9 = SW_RESTORE
-        "SUCCESS"
+"@ -Name "user32" -Namespace Win32Functions
+        }
+        [Win32Functions.user32]::ShowWindow(${handle}, 9) | Out-Null; "SUCCESS"
         `;
+        
         await this.ps.execute(script);
         this._log('restoreWindow', { appName }, 'SUCCESS');
-        return `Restored: ${appName}`;
+        return `${appName.charAt(0).toUpperCase() + appName.slice(1)} restored successfully`;
     }
 
     /**
@@ -200,20 +183,18 @@ class WindowManager {
         const finalH = Math.max(200, Math.min(height, screen.height - finalY));
 
         const script = `
-        Add-Type -TypeDefinition "
-        using System;
-        using System.Runtime.InteropServices;
-        public class User32 {
-            [DllImport(\\"user32.dll\\")]
+        If (-NOT ([System.Management.Automation.PSTypeName]'Win32Functions.user32').Type) {
+            Add-Type -MemberDefinition @"
+            [DllImport("user32.dll")]
             public static extern bool MoveWindow(IntPtr hWnd, int x, int y, int nWidth, int nHeight, bool bRepaint);
-        }";
-        [User32]::MoveWindow(${handle}, ${finalX}, ${finalY}, ${finalW}, ${finalH}, $true) | Out-Null;
-        "SUCCESS"
+"@ -Name "user32" -Namespace Win32Functions
+        }
+        [Win32Functions.user32]::MoveWindow(${handle}, ${finalX}, ${finalY}, ${finalW}, ${finalH}, $true) | Out-Null; "SUCCESS"
         `;
         await this.ps.execute(script);
         const params = { x: finalX, y: finalY, w: finalW, h: finalH };
         this._log('setWindowBounds', { appName, ...params }, 'SUCCESS');
-        return `Moved/Resized: ${appName} to ${finalX},${finalY} (${finalW}x${finalH})`;
+        return `${appName.charAt(0).toUpperCase() + appName.slice(1)} moved and resized successfully`;
     }
 
     async _getScreenResolution() {

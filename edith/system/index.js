@@ -3,7 +3,6 @@ const processManager = require('../core/launcher/processManager');
 const windowManager = require('./window_manager');
 const systemMonitor = require('./system_monitor');
 const eventListener = require('./event_listener');
-const Utils = require('../controller/utils');
 
 const psService = require('./powershell_service');
 
@@ -18,7 +17,6 @@ class SystemIntegrationHub {
         this.windowManager = windowManager;
         this.monitor = systemMonitor;
         this.events = eventListener;
-        this.utils = new Utils();
         this.ps = psService;
         this.isInitialized = false;
         
@@ -126,15 +124,7 @@ class SystemIntegrationHub {
      */
     async execute(action) {
         const { intent, parameters } = action;
-        const rawTarget = parameters?.app || parameters?.target || parameters?.path;
-        
-        // --- Selective Sanitization (V47.9) ---
-        // Sanitize if it's an OPEN_PATH intent, or if the target is a path/variable
-        // Note: URI Protocols (ms-settings:) shouldn't be resolved as paths
-        const isUri = rawTarget && rawTarget.includes(':') && !rawTarget.includes('\\') && !rawTarget.includes('/');
-        const isPath = rawTarget && (rawTarget.includes('\\') || rawTarget.includes('/') || rawTarget.includes('%') || rawTarget.includes('$'));
-        
-        const target = (intent === 'OPEN_PATH' || isPath) && !isUri ? this.utils.getSafePath(rawTarget) : rawTarget;
+        const target = parameters?.path || parameters?.app || parameters?.target;
         
         if (!this.isInitialized) await this.initialize();
 
@@ -181,6 +171,18 @@ class SystemIntegrationHub {
             // STATE ACCESS
             case 'SYSTEM_STATUS':
                 return this.state.get();
+
+            // HARDWARE CONTROL
+            case 'ADJUST_VOLUME': {
+                const vol = Math.min(Math.max(parameters?.level || 50, 0), 100);
+                await this.executePowerShell(`(New-Object -ComObject WScript.Shell).SendKeys([char]174)*50; (New-Object -ComObject WScript.Shell).SendKeys([char]175)*${Math.floor(vol/2)}`);
+                return `Volume set to ${vol}%`;
+            }
+            case 'ADJUST_BRIGHTNESS': {
+                const bright = Math.min(Math.max(parameters?.level || 50, 0), 100);
+                await this.executePowerShell(`(Get-WmiObject -Namespace root/WMI -Class WmiMonitorBrightnessMethods).WmiSetBrightness(1, ${bright})`);
+                return `Brightness set to ${bright}%`;
+            }
             default:
                 throw new Error(`Intent ${intent} not handled by SIL Hub.`);
         }

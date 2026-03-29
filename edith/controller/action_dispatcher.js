@@ -1,100 +1,163 @@
-const FileManager = require('../plugins/file_manager');
-const ContentProcessor = require('../plugins/content_processor');
-const systemHub = require('../system/index'); 
+const resolver = require('../core/pipeline/resolver');
+const executorPipeline = require('../core/pipeline/executor_pipeline');
+const monitorService = require('../services/monitor');
+const systemHub = require('../system/index');
+const appLauncher = require('../core/launcher/index');
+const processManager = require('../core/launcher/processManager');
+const SearchService = require('../services/search');
 const Sandbox = require('../security/sandbox');
-const path = require('path');
+
+const securityGate = new Sandbox();
 
 /**
- * Action Dispatcher (V38.1.5 Clean Build)
- * Centralized intent orchestration via the Nervous System Hub.
+ * Action Dispatcher (Unified Pipeline V53.3)
+ * 
+ * Clean, thin router that enforces the P2 -> P1 -> P3 pipeline.
+ * All complex resolution and execution is delegated to the core pipeline.
  */
 class ActionDispatcher {
-    constructor(utils) {
-        this.utils = utils;
-        this.sandbox = new Sandbox();
-        
-        // Initialize Core Plugins
-        this.fileManager = new FileManager(utils);
-        this.contentProcessor = new ContentProcessor(utils);
+    constructor() {
         this.systemHub = systemHub;
     }
 
-    /**
-     * Classified if an action requires user confirmation (V38.1.4)
-     */
-    _getRiskLevel(action) {
-        const { intent, parameters, path: targetPath } = action;
-        const target = targetPath || parameters?.app || parameters?.target || "";
-        
-        // 1. FORBIDDEN (Handled by Sandbox)
-        try {
-            this.sandbox.validate(target, intent);
-        } catch (e) {
-            return 'FORBIDDEN';
-        }
-
-        // 2. RISKY (Requires Confirmation)
-        const riskyIntents = ['SYSTEM_SLEEP', 'LOCK_COMPUTER', 'DELETE_FOLDER', 'DELETE_FILE'];
-        if (riskyIntents.includes(intent)) return 'RISKY';
-
-        if (intent === 'CLOSE_APPLICATION') {
-            const edithProcesses = this.systemHub.state.get('edith_processes') || [];
-            const runningApps = this.systemHub.state.get('running_apps') || [];
-            const app = runningApps.find(a => a.name.toLowerCase().includes(target.toLowerCase()));
-            if (app && !edithProcesses.some(p => p.pid === app.pid)) {
-                return 'RISKY';
-            }
-        }
-
-        return 'NORMAL';
-    }
-
-    /**
-     * Dispatches a single action to the correct sub-module.
-     */
     async dispatch(action, confirmed = false) {
-        const { intent, path: targetPath, name, parameters } = action;
-        const target = targetPath || name || parameters?.path || parameters?.app || parameters?.target || '';
+        let { intent, parameters } = action;
         
-        // Parameter Normalization (V41.14): Ensure plugins see parameters at top level
-        if (target && !action.path && !action.name) action.path = target; 
-        if (parameters?.content && !action.content) action.content = parameters.content;
-        if (parameters?.destination && !action.destination) action.destination = parameters.destination;
-        
-        // 1. Safety & Risk Gate
-        const risk = this._getRiskLevel(action);
-        if (risk === 'FORBIDDEN') this.sandbox.validate(target, intent);
+        // 0. Parameter Extraction & Normalization (V52.1)
+        const target = parameters?.path || parameters?.app || parameters?.target || '';
+        const secondary = parameters?.newName || parameters?.destination || parameters?.target || '';
 
-        if (risk === 'RISKY' && !confirmed) {
+        // Structured Logging
+        console.log(`\n[ActionDispatcher] 📥 RECEIVED INTENT: ${intent}`);
+        console.log(`[ActionDispatcher] 🎯 RAW TARGET: ${target || 'None'}`);
+        if (secondary !== target) console.log(`[ActionDispatcher] 🔄 SECONDARY: ${secondary}`);
+
+        // 1. Resolve Target (Phase 2 & Phase 1)
+        let resolved;
+        try {
+            resolved = await resolver.resolve(target, intent);
+        } catch (err) {
+            if (intent === 'SEARCH_FILE') return await SearchService.find(target);
+            
+            // Standardize resolution errors into conversational responses
+            const targetType = intent.includes('FOLDER') || intent.includes('PATH') ? 'folder' : 'file';
+            let humanMessage = `I couldn't find that ${targetType}. Can you clarify?`;
+            
             return {
-                status: "NEED_CONFIRMATION",
-                message: `Action "${intent}" on "${target}" requires confirmation. Proceed?`,
-                action
+                success: false,
+                message: humanMessage,
+                data: null
             };
         }
 
-        // 2. Nervous System Routing (V38.1.5)
-        const silIntents = [
-            'FOCUS_WINDOW', 'MINIMIZE_WINDOW', 'MAXIMIZE_WINDOW', 'RESTORE_WINDOW', 
-            'RESIZE_WINDOW', 'MOVE_WINDOW', 'ARRANGE_WINDOWS', 
-            'SYSTEM_STATUS', 'EMERGENCY_STOP', 'OPEN_APPLICATION', 'CLOSE_APPLICATION', 'OPEN_PATH'
-        ];
-
-        if (silIntents.includes(intent)) {
-            if (!this.systemHub.isInitialized) await this.systemHub.initialize();
-            return await this.systemHub.execute(action);
+        // Handle Choice Prompts
+        if (resolved.needsConfirmation) {
+            return {
+                status: 'NEED_CHOICE',
+                query: target,
+                alternatives: resolved.alternatives.map(a => ({ name: a.name, path: a.path, type: a.type, confidence: a.finalScore }))
+            };
         }
 
-        // 3. File & Content Plugins
-        if (intent.includes('FILE') || intent.includes('FOLDER')) {
-            if (['SEARCH_FILE', 'SUMMARIZE_FILE', 'READ_FILE'].includes(intent)) {
-                return await this.contentProcessor.execute(action);
+        const finalTarget = resolved.bestMatch?.path || target;
+
+        // --- 1.6 Intent Alignment based on OS Type ---
+        if (intent.startsWith('OPEN') && finalTarget) {
+            try {
+                const fs = require('fs');
+                if (fs.existsSync(finalTarget)) {
+                    const stat = fs.statSync(finalTarget);
+                    if (stat.isFile() && finalTarget.toLowerCase().endsWith('.exe')) {
+                        intent = 'OPEN_APPLICATION';
+                        action.intent = 'OPEN_APPLICATION';
+                    } else if (stat.isDirectory()) {
+                        intent = 'OPEN_PATH';
+                        action.intent = 'OPEN_PATH';
+                    } else if (stat.isFile()) {
+                        intent = 'OPEN_FILE';
+                        action.intent = 'OPEN_FILE';
+                    }
+                }
+            } catch (err) {
+                // Ignore stat errors, let pipeline handle it
             }
-            return await this.fileManager.execute(action);
         }
 
-        throw new Error(`Intent ${intent} is not registered in Disptacher.`);
+        // 1.7 Search Termination Gate
+        if (intent === 'SEARCH_FILE') {
+            return await SearchService.find(target);
+        }
+
+        // 1.8 Sandbox Validation Gate (Phase 3 Prep)
+        if (!confirmed) {
+            const riskLevel = securityGate.validate(finalTarget, intent);
+            if (riskLevel === 'HIGH') {
+                return { status: 'NEED_CONFIRMATION', intent, target: finalTarget };
+            }
+        }
+
+        // 1.9 Unified Execution Routing (Phase 3)
+        let executionResult;
+
+        try {
+            // A. Special Case: System Status (Non-pipeline)
+            if (intent === 'SYSTEM_STATUS') {
+                const snapshot = await monitorService.getFullSnapshot();
+                executionResult = { success: true, message: "System status retrieved.", data: snapshot };
+            } 
+            // B. Special Case: Emergency Stop
+            else if (intent === 'EMERGENCY_STOP') {
+                const res = await systemHub.emergencyStop();
+                executionResult = { success: true, message: res, data: null };
+            }
+            // C. Standard Pipeline Flow (Files, Apps, Windows, Hardware)
+            else {
+                // PATH GUARD: If no path resolved and intent requires one, abort with friendly message.
+                const needsPath = !['ADJUST_VOLUME', 'ADJUST_BRIGHTNESS', 'SYSTEM_STATUS', 'EMERGENCY_STOP'].includes(intent);
+                
+                if (needsPath && !resolved.bestMatch?.path) {
+                    // Fallback for applications that might not be in the index but are in the PATH
+                    if (intent === 'OPEN_APPLICATION' || intent === 'OPEN_APP') {
+                         const res = await executorPipeline.execute(action, target); // Try with raw target
+                         executionResult = res;
+                    } else {
+                        const targetType = intent.includes('FOLDER') || intent.includes('PATH') ? 'folder' : 'file';
+                        executionResult = { 
+                            success: false, 
+                            message: `I couldn't find that ${targetType} ("${target}"). Can you clarify?`,
+                            data: { target }
+                        };
+                    }
+                } else {
+                    // Standard Execution via Pipeline
+                    executionResult = await executorPipeline.execute(action, finalTarget);
+                }
+            }
+
+            // 3. Format Standardized Response
+            return {
+                success: executionResult.success !== false,
+                message: executionResult.message || "Action executed successfully.",
+                data: executionResult.data || null,
+                intent: intent
+            };
+
+        } catch (error) {
+            console.error(`[ActionDispatcher] Pipeline Error:`, error.message);
+            
+            let humanMessage = `Execution failed: ${error.message}`;
+            if (error.message.includes('could not be resolved')) {
+                const targetType = intent.includes('FOLDER') || intent.includes('PATH') ? 'folder' : 'file';
+                humanMessage = `I couldn't find that ${targetType}. Can you clarify?`;
+            }
+
+            return {
+                success: false,
+                message: humanMessage,
+                data: null
+            };
+        }
     }
 }
 
-module.exports = ActionDispatcher;
+module.exports = new ActionDispatcher();

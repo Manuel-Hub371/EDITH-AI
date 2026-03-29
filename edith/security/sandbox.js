@@ -23,7 +23,7 @@ class Sandbox {
 
         // --- 2. Dangerous Extensions ---
         this.blockedExtensions = [
-            '.bat', '.ps1', '.reg', '.vbs', '.exe', '.msi', '.cmd', '.sh', '.py', '.js'
+            '.bat', '.ps1', '.reg', '.vbs', '.exe', '.msi', '.cmd', '.sh'
         ];
 
         // --- 3. Protected System Processes ---
@@ -54,9 +54,14 @@ class Sandbox {
         
         // --- System Folder Logic ---
         if (this.blockedFolders.some(f => lowerPath.startsWith(f))) {
-            const isReadAction = ['OPEN', 'OPEN_PATH', 'READ_FILE', 'SUMMARIZE_FILE', 'SEARCH_FILE', 'OPEN_APPLICATION'].includes(intent);
+            const isReadAction = ['OPEN', 'OPEN_PATH', 'OPEN_FILE', 'READ_FILE', 'SUMMARIZE_FILE', 'SEARCH_FILE', 'OPEN_APPLICATION'].includes(intent);
+            const isModification = [
+                'CREATE_FILE', 'CREATE_FOLDER', 'DELETE_FILE', 'DELETE_FOLDER', 
+                'MOVE_FILE', 'MOVE_FOLDER', 'WRITE_FILE', 'APPEND_FILE', 
+                'RENAME_FILE', 'RENAME_FOLDER', 'COPY_FILE'
+            ].includes(intent);
             
-            if (!isReadAction) {
+            if (isModification && !isReadAction) {
                 throw new Error(`SECURITY: Modification of system directory "${targetPath}" is strictly forbidden.`);
             }
         }
@@ -64,8 +69,14 @@ class Sandbox {
         // --- Extension Logic ---
         const ext = path.extname(lowerPath);
         if (this.blockedExtensions.includes(ext)) {
-            const isModification = ['CREATE_FILE', 'DELETE_FILE', 'MOVE_FILE', 'MOVE_FOLDER'].includes(intent);
-            if (isModification) {
+            const isRead = ['READ_FILE', 'SUMMARIZE_FILE', 'SEARCH_FILE', 'OPEN_FILE', 'OPEN_PATH'].includes(intent);
+            const isModification = [
+                'CREATE_FILE', 'DELETE_FILE', 'MOVE_FILE', 'MOVE_FOLDER', 
+                'WRITE_FILE', 'APPEND_FILE', 'RENAME_FILE', 'RENAME_FOLDER',
+                'COPY_FILE'
+            ].includes(intent);
+            
+            if (isModification && !isRead) {
                 throw new Error(`SECURITY: Manipulation of "${ext}" files is blocked for safety.`);
             }
         }
@@ -73,7 +84,7 @@ class Sandbox {
         // --- Root Drive Safety ---
         const root = path.join(this.systemDrive, path.sep).toLowerCase();
         if (lowerPath === root || lowerPath === this.systemDrive.toLowerCase()) {
-            if (intent !== 'OPEN_PATH') {
+            if (intent !== 'OPEN_PATH' && intent !== 'OPEN_FOLDER') {
                 throw new Error("SECURITY: Root drive manipulation is forbidden.");
             }
         }
@@ -93,7 +104,30 @@ class Sandbox {
             this.validateProcess(target);
         }
 
-        return true;
+        // Return the dynamic safety risk level for UI confirmation prompts
+        const RISK_LEVELS = {
+            LOW: [
+                'OPEN_APPLICATION', 'FOCUS_WINDOW', 'MINIMIZE_WINDOW', 
+                'MAXIMIZE_WINDOW', 'RESTORE_WINDOW', 'ARRANGE_WINDOWS', 
+                'RESIZE_WINDOW', 'SYSTEM_STATUS', 'READ_FILE', 
+                'SUMMARIZE_FILE', 'SEARCH_FILE', 'ADJUST_VOLUME', 
+                'ADJUST_BRIGHTNESS', 'OPEN_PATH', 'OPEN_FILE'
+            ],
+            HIGH: [
+                'CREATE_FILE', 'CREATE_FOLDER', 'CLOSE_APPLICATION', 
+                'LOCK_COMPUTER', 'SYSTEM_SLEEP', 'MOVE_FILE', 'MOVE_FOLDER', 
+                'RENAME_FILE', 'RENAME_FOLDER', 'WRITE_FILE', 'APPEND_FILE', 'COPY_FILE'
+            ],
+            CRITICAL: [
+                'DELETE_FILE', 'DELETE_FOLDER', 'SHUTDOWN_SYSTEM', 'RESTART_SYSTEM'
+            ]
+        };
+
+        for (const [level, intents] of Object.entries(RISK_LEVELS)) {
+            if (intents.includes(intent)) return level;
+        }
+
+        return 'HIGH'; // Default unknown intents to HIGH
     }
 }
 

@@ -1,5 +1,19 @@
-import asyncio
 import os
+import sentry_sdk
+
+# ── Sentry Initialization (Must be before other imports) ──────────────────
+from dotenv import load_dotenv
+load_dotenv()
+
+sentry_sdk.init(
+    dsn=os.getenv("SENTRY_DSN", ""),
+    environment=os.getenv("ENV", "development"),
+    traces_sample_rate=1.0,
+    profiles_sample_rate=1.0,
+    debug=False,
+)
+
+import asyncio
 import json
 import logging
 import re
@@ -8,10 +22,7 @@ from google import genai
 from google.genai import types
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -23,7 +34,7 @@ if not GOOGLE_API_KEY:
     raise ValueError("GOOGLE_API_KEY not found in environment variables. Access denied.")
 
 # Initialize AI Engine with Async Client
-app = FastAPI(title="EDITH_AI_ENGINE", version="4.1.0")
+app = FastAPI(title="EDITH_AI_ENGINE", version="49.0.0")
 client = genai.Client(api_key=GOOGLE_API_KEY)
 
 class UserMessage(BaseModel):
@@ -31,114 +42,126 @@ class UserMessage(BaseModel):
     history: list = Field(default_factory=list)
     context: dict = Field(default_factory=dict) # V38.0 Context Persistence
 
-HYBRID_SYSTEM_PROMPT = f"""
-You are EDITH. Speak like a real person in casual conversation.
+HYBRID_SYSTEM_PROMPT = """
+You are EDITH, a real-time OS-aware agent. Use the provided [SYSTEM_STATE] and [CONTEXT MEMORY] to answer questions and resolve pronouns accurately.
 
-[CORE IDENTITY]
-- Natural, simple, and human. Not a "chatbot" or "assistant".
-- MATCH USER ENERGY. Don't be dramatic or poetic.
-- Tone: Informal and direct. No performative warmth.
-- Technical Talk: Avoid drive letters (C:\\) or "being a program". However, you MAY mention filenames and folder names naturally if the user is talking about them.
+[IDENTITY]
+- Natural, direct, human. No chatbot fluff. Match user energy.
+- Use Windows context naturally (Desktop, Documents, etc.).
+- Maintain conversational flow. e.g. "Opening Documents folder..."
 
-[ENVIRONMENT]
-- Windows OS
-- User Home: {os.getenv('USERPROFILE')}
-- Primary Shortcuts: Desktop, Documents, Downloads
-- [SYSTEM_STATE]: This is your real-time "Vision" of the host. Use it to answer questions about specs, apps, or performance directly. No need for actions if you have the data here.
+[SCHEMA]
+Respond with valid JSON ONLY:
+{
+  "mode": "chat" | "execution",
+  "message": "natural human-friendly confirmation or clarificaiton (e.g. 'Opening Documents folder...' or 'I couldn't find the file, can you clarify?')",
+  "intent": "INTENT_NAME",
+  "parameters": {
+    "target": "name or absolute path",
+    "destination": "target directory (for moving/copying)",
+    "newName": "new name (for renaming)",
+    "content": "file contents",
+    "value": "system parameter value (e.g. volume/brightness level)"
+  }
+}
 
-[INTERACTION MODES]
-1. CONVERSATIONAL: Use this for questions, casual chat, and resolving history. 
-   - If the user asks "what's running" or "how's my pc?", use the [SYSTEM_STATE] in your reply.
-   - Stay in mode:chat unless you need to change a state (close, open, resize).
-2. EXECUTION: Use this only when the user gives an explicit command to DO something.
-   - Format: You MUST include a JSON block if you are planning actions.
+[INTENTS & PATTERNS]
+- FILES & FOLDERS: 
+  CREATE_FILE, CREATE_FOLDER ("Create a folder named X")
+  DELETE_FILE, DELETE_FOLDER ("Delete X")
+  MOVE_FILE, MOVE_FOLDER ("Move X into Y" -> parameters.destination="Y")
+  RENAME_FILE, RENAME_FOLDER ("Rename X to Y" -> parameters.newName="Y")
+  WRITE_FILE, APPEND_FILE, READ_FILE
+  COPY_FILE, COPY_FOLDER ("Copy X to Y" -> parameters.destination="Y")
+  OPEN_PATH, OPEN_FILE ("Open Documents folder" -> OPEN_PATH)
+- APPS: 
+  OPEN_APPLICATION ("Open VS Code" -> target="code")
+  CLOSE_APPLICATION, MINIMIZE_WINDOW, MAXIMIZE_WINDOW, FOCUS_WINDOW
+- SYSTEM: 
+  ADJUST_VOLUME ("Increase volume to 80%" -> value="80")
+  ADJUST_BRIGHTNESS, SHUTDOWN_SYSTEM, RESTART_SYSTEM, SYSTEM_SLEEP
 
-[EXECUTION SCHEMA]
-{{
-  "mode": "execution",
-  "response": "Natural conversational acknowledgement",
-  "actions": [
-    {{
-      "intent": "INTENT_NAME",
-      "parameters": {{
-        "app": "name",
-        "target": "window_title",
-        "level": 0-100,
-        "layout": "split-vertical",
-        "path": "ABSOLUTE_PATH"
-      }}
-    }}
-  ]
-}}
-
-[INTENTS]
-- WINDOW MANAGEMENT: FOCUS_WINDOW (target), MINIMIZE_WINDOW (target), MAXIMIZE_WINDOW (target), RESTORE_WINDOW (target), ARRANGE_WINDOWS (layout), RESIZE_WINDOW (target, width, height, x, y)
-- APPLICATION CONTROL: OPEN_APPLICATION (app), CLOSE_APPLICATION (app)
-- SYSTEM CONTROLS: LOCK_COMPUTER, SYSTEM_SLEEP, ADJUST_VOLUME (level), ADJUST_BRIGHTNESS (level)
-- SYSTEM MONITORING: SYSTEM_STATUS (Deep refresh)
-- FILE SYSTEM: OPEN_PATH (path), CREATE_FILE (path, content), CREATE_FOLDER (path), DELETE_FILE (path), MOVE_FILE (path, destination)
-- CONTENT: READ_FILE (path), SUMMARIZE_FILE (path), SEARCH_FILE (path, query)
-
-[STRICT RULES]
-1. PRONOUNS: Use [CONTEXT MEMORY] to resolve "it", "that", "this".
-2. SAFETY: Never attempt to terminate critical system processes like explorer.exe.
-3. CONTEXT INTEGRATION: Only mention system performance (CPU/RAM/Apps) if specifically asked, or if it explains why you are responding slowly. Never dump exact percentages unsolicited.
-4. PARAMETERS: Always wrap target data in the "parameters" object as shown in the schema.
+[STRICT REASONING RULES]
+1. Explicitly distinguish between folders and files when mapping to intents (e.g. CREATE_FOLDER vs CREATE_FILE).
+2. Pronoun Resolution: If the user says "Rename it to X" or "Move it here", dynamically extract the implied target path from [CONTEXT MEMORY] and place it in the parameters.
+3. Provide valid, descriptive targets in parameters. Do not output raw undefined parameters.
+4. No Markdown blocks. Raw JSON ONLY.
 """
 
-# Stable Model IDs (V41.18 - Exact Registry Match)
-PRIMARY_MODEL = 'models/gemini-flash-latest' # Stable 1.5 Flash (High Quota)
+# High-Resiliency Model Registry (V53.3 - Verified Regional Availability)
+# Optimized Model Registry (V53.3 - Quota Optimized)
+PRIMARY_MODEL = 'models/gemini-flash-lite-latest' # Tier 1: Working (Verified 2026-03-29)
 FALLBACK_MODELS = [
-    'models/gemini-2.0-flash', 
-    'models/gemini-2.0-flash-lite',
-    'models/gemini-2.5-flash',
-    'models/gemini-pro-latest'
+    'models/gemini-3.1-flash-lite-preview', # Tier 2: Working (Verified 2026-03-29)
+    'models/gemini-2.0-flash-lite',         # Tier 3: High-Throughput (Backup)
+    'models/gemini-2.0-flash',              # Tier 4: Standard Flash (High Use)
+    'models/gemini-flash-latest',           # Tier 5: Legacy Flash
+    'models/gemini-pro-latest'              # Tier 6: High-Reasoning (Strict Quotas)
 ]
 
-async def generate_with_fallback(prompt: str, context: dict = None) -> str:
-    """Generates content with stable model usage (V41.17)."""
-    models_to_try = [PRIMARY_MODEL] + FALLBACK_MODELS
+# --- GLOBAL EXHAUSTION TRACKING (V52.1) ---
+EXHAUSTED_MODELS: Dict[str, float] = {} # model_id -> time_exhausted
+
+async def generate_with_fallback(prompt: str, context: dict | None = None) -> str:
+    """Generates content with zero-delay smart rotation (V52.3)."""
+    import time
+    
+    # Refresh registry: Skip models that were exhausted in the last 60s
+    now = time.time()
+    
+    models_to_try = []
+    if now - EXHAUSTED_MODELS.get(PRIMARY_MODEL, 0) > 60:
+        models_to_try.append(PRIMARY_MODEL)
+        
+    available_fallbacks = [m for m in FALLBACK_MODELS if now - EXHAUSTED_MODELS.get(m, 0) > 60]
+    models_to_try.extend(available_fallbacks)
+    
+    # Fail-safe: If all models are in cooldown, try the primary anyway
+    if not models_to_try:
+        models_to_try = [PRIMARY_MODEL]
+    
     last_error = "Unknown error"
     
-    context_str = f"\n[CONTEXT MEMORY]\n{json.dumps(context, indent=2)}\n" if context else ""
-    system_instruction = f"{HYBRID_SYSTEM_PROMPT}{context_str}"
+    context_str = f"\n[CONTEXT MEMORY/OS STATE]\n{json.dumps(context, indent=2)}\n" if context else ""
+    full_prompt = f"{context_str}\n\n{prompt}"
 
+    last_error = "Unknown error"
+    
     for i, model_id in enumerate(models_to_try):
         try:
-            # Staggered Retry: Wait 2s if not the first attempt to avoid RPM spikes
-            if i > 0:
-                await asyncio.sleep(2)
-                
             logger.info(f"Initiating Uplink: {model_id}")
             response = await client.aio.models.generate_content(
                 model=model_id,
-                contents=prompt,
+                contents=full_prompt,
                 config=types.GenerateContentConfig(
-                    system_instruction=system_instruction,
+                    system_instruction=HYBRID_SYSTEM_PROMPT,
                     temperature=0.7,
-                    stop_sequences=["USER:", "\nUSER:", "User:", "\nUser:", "\n\nUSER:"]
+                    response_mime_type="application/json"
                 )
             )
             
             if response.text:
                 return response.text.strip()
             
-            logger.warning(f"Engine Silence from {model_id}. Trying next...")
+            logger.warning(f"Engine Silence from {model_id}. Re-indexing registry...")
             
         except Exception as e:
             err_str = str(e)
+            logger.warning(f"Uplink Fault on {model_id}: {err_str}")
+            
             if "429" in err_str or "quota" in err_str.lower():
-                logger.warning(f"Quota Exhausted for {model_id}. Cascading to fallback...")
-                last_error = err_str
-                continue
+                EXHAUSTED_MODELS[model_id] = now
+                last_error = "Free tier quota exceeded"
             elif "404" in err_str or "not found" in err_str.lower():
-                logger.warning(f"Model ID {model_id} not available. Skipping...")
-                continue
+                # Permanently (for this session) bypass models not available in region
+                EXHAUSTED_MODELS[model_id] = now + 86400 # 24h bypass
+                last_error = "Model not available in region"
             else:
-                logger.error(f"Uplink Fault on {model_id}: {err_str}")
-                return f"Operational Fault: {err_str}"
+                last_error = err_str
 
-    return f"Critical Service Outage: All model quotas exhausted. Last error: {last_error or 'Unknown Quota Issue'}"
+    # Final Fallback directly returning a JSON-parsable string for safety
+    error_msg = f"Critical Service Outage: {last_error}. Please try again later."
+    return json.dumps({"mode": "chat", "message": error_msg})
 
 @app.post("/process")
 async def process_message(user_msg: UserMessage):
@@ -149,44 +172,17 @@ async def process_message(user_msg: UserMessage):
         
         raw_text = await generate_with_fallback(prompt, user_msg.context)
         
-        # --- Smart Intent Extraction (V41.11) ---
-        # We search for JSON regardless of keywords to handle typos and new verbs
-        json_str = None
-        md_match = re.search(r'```json\s*(\{.*\})\s*```', raw_text, re.DOTALL)
-        if md_match:
-            json_str = md_match.group(1)
-        else:
-            # Fallback for models that skip the markdown fences
-            improved_match = re.search(r'(\{\s*"mode":\s*"execution".*?\})', raw_text, re.DOTALL)
-            if improved_match:
-                json_str = improved_match.group(1)
-        
-        if json_str:
-            try:
-                potential_json = json.loads(json_str)
-                if isinstance(potential_json, dict) and potential_json.get("mode") == "execution":
-                    # Ensure the response is cleaned of raw JSON if we return the dict
-                    return potential_json
-            except json.JSONDecodeError:
-                pass
-
-        # --- Clean Conversational Response (V41.3) ---
-        # 1. Strip all JSON blocks
-        clean_text = re.sub(r'```json.*?```', '', raw_text, flags=re.DOTALL)
-        clean_text = re.sub(r'\{.*?"mode":.*?"execution".*?\}', '', clean_text, flags=re.DOTALL)
-        
-        # 2. Strip standard prefixes that models sometimes hallucinate
-        clean_text = re.sub(r'^(AI|EDITH|Response|Output):\s*', '', clean_text, flags=re.IGNORECASE)
-        
-        # 3. Final cleanup
-        clean_text = clean_text.strip()
-        if not clean_text: clean_text = raw_text.strip()
-            
-        return {"mode": "chat", "response": clean_text}
+        try:
+            parsed_json = json.loads(raw_text)
+            return parsed_json
+        except json.JSONDecodeError:
+            # If it's still not JSON, wrap the raw text in a JSON bubble
+            logger.error(f"Failsafe: Auto-wrapping AI response: {raw_text}")
+            return {"mode": "chat", "message": raw_text}
 
     except Exception as e:
         logger.error(f"System Critical: {str(e)}")
-        return {"mode": "chat", "response": "Operational Fault: AI Engine unstable. Please try again."}
+        return {"mode": "chat", "message": "Operational Fault: AI Engine unstable. Please try again."}
 
 
 @app.get("/health")

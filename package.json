@@ -1,13 +1,13 @@
 {
   "name": "edith-ai",
   "productName": "EDITH AI",
-  "version": "48.1.0",
+  "version": "53.3.0",
   "description": "EDITH — Your AI Desktop Agent",
   "main": "electron/main.js",
   "scripts": {
-    "start": "electron .",
-    "dev:node": "nodemon --watch edith edith/controller/server.js",
-    "dev:ai": "nodemon --watch edith/ai_engine -e py --exec python edith/ai_engine/ai.py",
+    "start": "node edith/core/port_killer.js && electron .",
+    "dev:node": "node edith/core/port_killer.js && nodemon --watch edith edith/controller/server.js",
+    "dev:ai": "node edith/core/port_killer.js && nodemon --watch edith/ai_engine -e py --exec python edith/ai_engine/ai.py",
     "dev": "concurrently \"npm run dev:node\" \"npm run dev:ai\"",
     "pack": "electron-builder --dir",
     "dist": "electron-builder --win"
@@ -45,10 +45,14 @@
     }
   },
   "dependencies": {
+    "@sentry/electron": "^7.10.0",
+    "@sentry/node": "^10.45.0",
     "axios": "^1.6.2",
+    "chokidar": "^5.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "fuse.js": "^7.1.0",
     "mongoose": "^8.0.0",
     "systeminformation": "^5.31.4",
     "tree-kill": "^1.2.2"
@@ -57,6 +61,7 @@
     "concurrently": "^9.2.1",
     "electron": "^34.0.0",
     "electron-builder": "^25.0.0",
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "playwright": "^1.58.2"
   }
 }

@@ -1,24 +1,40 @@
+const Sentry = require('@sentry/node');
+const dotenv = require('dotenv');
+
+// ── Sentry Initialization (Must be before other imports) ──────────────────
+dotenv.config();
+Sentry.init({
+    dsn: process.env.SENTRY_DSN || "",
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: 1.0,
+    debug: false,
+});
+
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
-const dotenv = require('dotenv');
 const connectDB = require('../database/db');
 const mongoose = require('mongoose');
 const path = require('path');
 const fs = require('fs');
 
 // Modular Imports (V38.1 Refresh)
-const Utils = require('./utils');
-const CommandParser = require('./command_parser');
 const ActionDispatcher = require('./action_dispatcher');
+const { validateAction } = require('./validator');
 
-dotenv.config();
+// Phase 1: High-Performance File Services
+const indexer = require('../services/indexer');
+const watcher = require('../services/watcher');
+
+// Phase 2: Memory & Learning Services
+const learningService = require('../services/learning');
+const memoryService = require('../services/memory');
+const aliasService = require('../services/alias');
+
 connectDB();
 
 const app = express();
-const utils = new Utils();
-const parser = new CommandParser();
-const dispatcher = new ActionDispatcher(utils);
+const dispatcher = require('./action_dispatcher');
 
 // --- CONTEXT MEMORY (V38.1) ---
 const contextMemory = {
@@ -50,7 +66,7 @@ const AI_URL = process.env.AI_BACKEND_URL || 'http://127.0.0.1:8000';
  * Returns status and uptime — used by main.js to confirm the backend is online.
  */
 app.get('/api/status', (req, res) => {
-    res.json({ status: 'ok', uptime: process.uptime(), version: '39.0.0' });
+    res.json({ status: 'ok', uptime: process.uptime(), version: '52.3.0' });
 });
 
 const chatSchema = new mongoose.Schema({
@@ -78,10 +94,9 @@ app.post('/api/chat', async (req, res) => {
         historyData.reverse().forEach(h => {
             if (h.user) history.push({ role: "user", text: h.user });
             if (h.ai) {
-                let text = typeof h.ai === 'object' ? h.ai.response : h.ai;
-                if (h.ai.actions && h.ai.actions.length > 0) {
-                    const actionSummaries = h.ai.actions.map(a => `[Intent: ${a.intent}]`).join(' ');
-                    text = `${text} ${actionSummaries}`.trim();
+                let text = typeof h.ai === 'object' ? h.ai.message || h.ai.response : h.ai;
+                if (h.ai && h.ai.intent) {
+                    text = `${text} [Intent: ${h.ai.intent}]`.trim();
                 }
                 if (text) history.push({ role: "ai", text });
             }
@@ -111,7 +126,9 @@ app.post('/api/chat', async (req, res) => {
         
         const aiAction = aiResponse.data;
         const chatRecord = new Chat({ sessionId, user: message, ai: aiAction });
-        await chatRecord.save();
+        
+        // Fire-and-forget save to database (Eliminates I/O wait)
+        chatRecord.save().catch(err => console.error('[DB] Background save failed:', err.message));
 
         res.json({ status: "success", action: aiAction });
 
@@ -121,51 +138,113 @@ app.post('/api/chat', async (req, res) => {
 });
 
 /**
- * Execution Pipeline (V38.1.4)
+ * Execution Pipeline (V39.0 - Unified Sandbox Check)
  */
 const pendingActions = new Map(); // Store risky actions waiting for confirmation
+const pendingChoices = new Map(); // Store low-confidence choices for user selection
 
 app.post('/api/execute', async (req, res) => {
-    const { actions, sessionId = 'default' } = req.body;
-    if (!actions || !Array.isArray(actions)) return res.status(400).json({ status: "error", message: "No actions provided." });
+    const { action, sessionId = 'default' } = req.body;
+    if (!action) return res.status(400).json({ status: "error", message: "No action provided." });
 
-    let finalResponse = "Task completed.";
-    let allSuccess = true;
+    try {
+        // 1. Schema Validation
+        validateAction(action);
+        
+        // 2. Execution Pipeline (Sandbox moved to dispatcher)
+        const target = action.parameters ? (action.parameters.path || action.parameters.app || action.parameters.target) : '';
+        const result = await dispatcher.dispatch(action);
 
-    for (const rawAction of actions) {
-        try {
-            const action = parser.parse(rawAction);
-            const result = await dispatcher.dispatch(action);
+        // --- PHASE 2: Check for Confirmation/Choice ---
+        if (result && result.status === 'NEED_CONFIRMATION') {
+            const actionId = Math.random().toString(36).substring(7);
+            action.parameters = { ...action.parameters, path: result.target || target }; // Update parsed path
+            pendingActions.set(actionId, { action, sessionId });
             
-            // Check for Confirmation Redirect
-            if (result && result.status === "NEED_CONFIRMATION") {
-                const actionId = Math.random().toString(36).substring(7);
-                pendingActions.set(actionId, { action, sessionId });
-                
-                return res.json({ 
-                    status: "NEED_CONFIRMATION", 
-                    message: result.message,
-                    actionId,
-                    intent: action.intent
-                });
-            }
-
-            if (action.path) contextMemory.last_path = action.path;
-            const target = action.path || action.name || (action.parameters ? action.parameters.path || action.parameters.app || action.parameters.target : '');
-            if (target) contextMemory.last_app = target;
-            
-            logAction(action.intent, target, 'SUCCESS');
-            finalResponse = result || "Task completed.";
-
-        } catch (err) {
-            allSuccess = false;
-            const target = rawAction.path || rawAction.name || (rawAction.parameters ? rawAction.parameters.path || rawAction.parameters.app || rawAction.parameters.target : '');
-            logAction(rawAction.intent, target, `FAILURE: ${err.message}`);
-            finalResponse = `Issue: ${err.message}`;
-            break;
+            return res.json({ 
+                status: "NEED_CONFIRMATION", 
+                message: `Safety Sandbox: High-risk action '${action.intent}' requires confirmation. Proceed?`,
+                actionId,
+                intent: action.intent
+            });
         }
+
+        if (result && result.status === 'NEED_CHOICE') {
+            const choiceId = Math.random().toString(36).substring(7);
+            pendingChoices.set(choiceId, { query: result.query, alternatives: result.alternatives, action });
+            return res.json({
+                status: "NEED_CHOICE",
+                message: "I found multiple matches. Which one did you mean?",
+                choices: result.alternatives,
+                choiceId
+            });
+        }
+
+        if (action.parameters && action.parameters.path) contextMemory.last_path = action.parameters.path;
+        if (target) {
+            contextMemory.last_app = target;
+            // Phase 2: Record successful command in background
+            const queryName = action.parameters ? (action.parameters.app || action.parameters.path || target) : target;
+            memoryService.recordCommand(queryName, action.intent, target, true);
+        }
+        
+        logAction(action.intent, target, result.success ? 'SUCCESS' : 'FAILURE');
+        res.json({ 
+            success: result.success !== false,
+            message: result.message || "Action executed successfully.",
+            data: result.data || undefined
+        });
+
+    } catch (err) {
+        logAction(action?.intent || 'UNKNOWN', '', `FAILURE: ${err.message}`);
+        res.json({ success: false, message: `Issue: ${err.message}` });
     }
-    res.json({ status: allSuccess ? "success" : "error", response: finalResponse });
+});
+
+/**
+ * Choice Resolution Endpoint (Phase 2)
+ */
+app.post('/api/execute/choice', async (req, res) => {
+    const { choiceId, selectedPath, alias } = req.body;
+    if (!pendingChoices.has(choiceId)) return res.status(404).json({ status: "error", message: "Choice session expired." });
+
+    const { query, action } = pendingChoices.get(choiceId);
+    pendingChoices.delete(choiceId);
+
+    try {
+        // 1. Save alias if provided (Learning)
+        if (alias) {
+            await aliasService.set(alias, selectedPath, action.intent.includes('APP') ? 'app' : 'file');
+        }
+
+        // 2. Update action parameters and execute
+        action.parameters.path = selectedPath;
+        if (action.parameters.app) action.parameters.app = selectedPath;
+        
+        const result = await dispatcher.dispatch(action);
+
+        // 3. Record in memory
+        memoryService.recordCommand(query, action.intent, selectedPath, true);
+
+        res.json({ success: true, message: result?.message || "Action completed with choice.", data: result?.data || undefined });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+/**
+ * Correction / Feedback Endpoint (Phase 2)
+ */
+app.post('/api/execute/correct', async (req, res) => {
+    const { alias, correctPath, type } = req.body;
+    if (!alias || !correctPath) return res.status(400).json({ status: "error", message: "Alias and CorrectPath are required." });
+
+    try {
+        await aliasService.set(alias, correctPath, type || 'file');
+        res.json({ success: true, message: `Learned! I'll remember that '${alias}' means '${correctPath}' from now on.` });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
 });
 
 /**
@@ -179,14 +258,14 @@ app.post('/api/execute/confirm', async (req, res) => {
     pendingActions.delete(actionId);
 
     if (!confirmed) {
-        return res.json({ status: "cancelled", message: "Action aborted by user." });
+        return res.json({ success: false, message: "Action aborted by user." });
     }
 
     try {
         const result = await dispatcher.dispatch(action, true); // Dispatch with confirmed=true
-        res.json({ status: "success", response: result || "Confirmed action completed." });
+        res.json({ success: result?.success !== false, message: result?.message || "Confirmed action completed.", data: result?.data || undefined });
     } catch (err) {
-        res.status(500).json({ status: "error", message: err.message });
+        res.status(500).json({ success: false, message: err.message });
     }
 });
 
@@ -230,6 +309,12 @@ app.delete('/api/chat/:sessionId', async (req, res) => {
  * Nervous System Bridge APIs (V38.1)
  */
 app.get('/system/status', (req, res) => res.json({ status: 'success', result: dispatcher.systemHub.state.get() }));
+app.get('/api/system/monitor', async (req, res) => {
+    try {
+        const stats = await monitorService.getFullSnapshot();
+        res.json({ status: 'success', result: stats });
+    } catch (err) { res.status(500).json({ status: 'error', message: err.message }); }
+});
 app.get('/system/active-window', (req, res) => res.json({ status: 'success', result: dispatcher.systemHub.state.get('active_window') }));
 app.get('/system/processes', (req, res) => res.json({ status: 'success', result: dispatcher.systemHub.state.get('running_apps') }));
 
@@ -306,8 +391,24 @@ app.post('/system/brightness', async (req, res) => {
 });
 
 const PORT = process.env.NODE_PORT || 5000;
+// ── Sentry Error Handler (V49.1) ────────────────────────────────────────────
+// The error handler must be before any other error middleware and after all controllers
+Sentry.setupExpressErrorHandler(app);
+
+// Optional: Custom error handler if needed
+app.use((err, req, res, next) => {
+    console.error(`[SERVER_ERROR] ${err.stack}`);
+    res.status(500).json({ status: 'error', message: 'Internal Server Error' });
+});
+
 app.listen(PORT, async () => {
     console.log(`EDITH Controller operational on port ${PORT}`);
-    try { await dispatcher.systemHub.initialize(); } 
+    try { 
+        await dispatcher.systemHub.initialize(); 
+        
+        // Initializing Phase 1 File Services
+        indexer.startFullScan(); // Runs in background
+        watcher.start();
+    } 
     catch (err) { console.error('[NERVOUS SYSTEM] Failed to awaken:', err.message); }
 });

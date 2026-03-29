@@ -1,75 +1,46 @@
-const appResolver = require('./appResolver');
 const powershellExecutor = require('./powershellExecutor');
-const systemState = require('../../system/system_state');
-const processScanner = require('./processScanner');
 
 /**
- * ProcessManager (V48.1 Real-Time Awareness)
- * High-level orchestrator for application lifecycle and OS-level monitoring.
+ * ProcessManager (Main Spawning Interface)
+ * Higher-level API for EDITH to manage process lifecycles.
  */
 class ProcessManager {
-    constructor() {
-        this.scanner = processScanner;
-    }
-
     /**
-     * Get live list of running user apps directly from OS (V48.1)
+     * Intelligent App Launch (Phase 3 Executor)
+     * Assumes path is already normalized and resolved by the unified pipeline.
      */
-    async getRunningApps() {
-        const apps = await this.scanner.scan();
-        systemState.update('running_apps', apps);
-        return apps;
-    }
-
-    /**
-     * Check if a specific application is currently open (OS Truth)
-     */
-    async isAppOpen(appName) {
-        return await this.scanner.isRunning(appName);
-    }
-
-    /**
-     * Launch an application by name or path
-     */
-    async launchApplication(appName) {
+    async launchApp(fullPath) {
         try {
-            // 1. Resolve path (Memory -> Auto-Discovery -> Path)
-            const fullPath = await appResolver.resolve(appName);
+            console.log(`[ProcessManager] Launching resolved path: ${fullPath}...`);
 
-            // 2. Launch with PowerShell
+            // OS Initiation
             const pid = await powershellExecutor.launch(fullPath);
 
-            // 3. Track Process
-            const processInfo = {
-                pid,
-                name: appName,
+            return {
+                status: 'success',
+                name: fullPath.split(/\\|\//).pop(),
+                pid: pid,
                 path: fullPath,
-                startedAt: new Date().toISOString()
+                message: `Launched (PID: ${pid})`
             };
-
-            this._trackProcess(processInfo);
-
-            const type = pid === 0 ? "Modern App" : `PID: ${pid}`;
-            return `Launched ${appName} (${type})`;
         } catch (error) {
-            console.error(`[ProcessManager] Launch Error: ${error.message}`);
-            throw new Error(`Failed to launch "${appName}". ${error.message}`);
+            console.error('[ProcessManager] Launch Error:', error.message);
+            throw new Error(`Execution Failed: ${error.message}`);
         }
     }
 
     /**
-     * Close an application by name or PID
+     * Close an application by name or PID using OS-level kill
      */
     async closeApplication(target) {
-        try {
-            const script = isNaN(parseInt(target)) 
-                ? `Stop-Process -Name "${target}" -Force -ErrorAction SilentlyContinue`
-                : `Stop-Process -Id ${target} -Force -ErrorAction SilentlyContinue`;
+        const isPid = !isNaN(parseInt(target));
+        const targetClean = target.toString().replace('.exe', '');
+        const script = isPid 
+            ? `Stop-Process -Id ${targetClean} -Force -ErrorAction SilentlyContinue`
+            : `Get-Process | Where-Object { $_.Name -like '*${targetClean}*' -or $_.MainWindowTitle -like '*${targetClean}*' } | Stop-Process -Force -ErrorAction SilentlyContinue`;
 
-            const { execSync } = require('child_process');
-            execSync(`powershell -Command "${script}"`);
-            
-            this._untrackProcess(target);
+        try {
+            await powershellExecutor.execute(`powershell -Command "${script}"`);
             return `Closed application: ${target}`;
         } catch (error) {
             throw new Error(`Failed to close "${target}". Ensure it is running.`);
@@ -77,56 +48,67 @@ class ProcessManager {
     }
 
     /**
-     * Open a file or folder path
+     * OS Execution Verification Layer
      */
-    async openPath(targetPath) {
+    async verifyProcess(appName) {
+        const target = appName.toLowerCase().replace('.exe', '');
+        const script = `Get-Process | Where-Object { $_.Name -like '*${target}*' -or $_.MainWindowTitle -like '*${target}*' } | Select-Object -First 1`;
+        
         try {
-            const { execSync } = require('child_process');
-            execSync(`powershell -Command "Start-Process '${targetPath}'"`);
-            return `Opened path: ${targetPath}`;
-        } catch (error) {
-            throw new Error(`Could not open path: ${targetPath}`);
+            const stdout = await powershellExecutor.execute(`powershell -Command "${script}"`);
+            return !!stdout.trim();
+        } catch (e) {
+            return false;
         }
     }
 
     /**
-     * Get list of running processes with hardware metrics
+     * Legacy Compatibility Method
+     */
+    async launchApplication(target) {
+        const result = await this.launchApp(target);
+        return result.message;
+    }
+
+    /**
+     * Get live list of running user apps directly from OS
      */
     async getRunningProcesses() {
-        return new Promise((resolve) => {
-            const { exec } = require('child_process');
-            // Optimized PS command (CPU/Memory/Title)
-            const script = `Get-Process | Where-Object { $_.MainWindowTitle } | Select-Object Id, ProcessName, CPU, WorkingSet, MainWindowTitle | ConvertTo-Json`;
-            
-            exec(`powershell -Command "${script}"`, (error, stdout) => {
-                try {
-                    const processes = JSON.parse(stdout || '[]');
-                    const list = (Array.isArray(processes) ? processes : [processes]).map(p => ({
-                        pid: p.Id,
-                        name: p.ProcessName,
-                        title: p.MainWindowTitle || "",
-                        cpu: Math.round(p.CPU || 0),
-                        memory: Math.round((p.WorkingSet || 0) / 1024 / 1024) // MB
-                    }));
-                    resolve(list);
-                } catch (e) {
-                    resolve([]);
-                }
-            });
-        });
+        const script = `Get-Process | Where-Object { $_.MainWindowTitle } | Select-Object Name, Id, MainWindowTitle, CPU, WorkingSet | ConvertTo-Json`;
+        
+        try {
+            const stdout = await powershellExecutor.execute(`powershell -Command "${script}"`);
+            const processes = JSON.parse(stdout || '[]');
+            const list = (Array.isArray(processes) ? processes : [processes]).map(p => ({
+                name: p.Name,
+                pid: p.Id,
+                title: p.MainWindowTitle || "",
+                cpu: Math.round(p.CPU || 0),
+                memory: Math.round((p.WorkingSet || 0) / 1024 / 1024) // MB
+            }));
+            return list;
+        } catch (e) {
+            return [];
+        }
     }
 
-    _trackProcess(info) {
-        this.activeProcesses.push(info);
-        const currentTracking = systemState.get('edith_processes') || [];
-        systemState.update('edith_processes', [...currentTracking, info]);
+    /**
+     * Alias for getRunningProcesses used by SIL Hub
+     */
+    async getRunningApps() {
+        return await this.getRunningProcesses();
     }
 
-    _untrackProcess(target) {
-        const isPid = !isNaN(parseInt(target));
-        const filtered = this.activeProcesses.filter(p => isPid ? p.pid != target : p.name.toLowerCase() !== target.toLowerCase());
-        this.activeProcesses = filtered;
-        systemState.update('edith_processes', filtered);
+    /**
+     * Open a file or folder path natively
+     */
+    async openPath(targetPath) {
+        try {
+            await powershellExecutor.execute(`cmd /c start "" "${targetPath}"`);
+            return `Opened path: ${targetPath}`;
+        } catch (error) {
+            throw new Error(`Failed to open path: ${targetPath}`);
+        }
     }
 }
 
