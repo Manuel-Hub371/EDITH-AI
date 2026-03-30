@@ -88,15 +88,13 @@ Respond with valid JSON ONLY:
 4. No Markdown blocks. Raw JSON ONLY.
 """
 
-# High-Resiliency Model Registry (V53.3 - Verified Regional Availability)
-# Optimized Model Registry (V53.3 - Quota Optimized)
-PRIMARY_MODEL = 'models/gemini-flash-lite-latest' # Tier 1: Working (Verified 2026-03-29)
+# High-Resiliency Model Registry (V54.2 - Gemini 3.1 Update)
+# Optimized for March 2026 Free Tier Stability
+PRIMARY_MODEL = 'models/gemini-3.1-flash-lite-preview' # Tier 1: Next-Gen Lite (2026)
 FALLBACK_MODELS = [
-    'models/gemini-3.1-flash-lite-preview', # Tier 2: Working (Verified 2026-03-29)
-    'models/gemini-2.0-flash-lite',         # Tier 3: High-Throughput (Backup)
-    'models/gemini-2.0-flash',              # Tier 4: Standard Flash (High Use)
-    'models/gemini-flash-latest',           # Tier 5: Legacy Flash
-    'models/gemini-pro-latest'              # Tier 6: High-Reasoning (Strict Quotas)
+    'models/gemini-3-flash-preview',      # Tier 2: Standard 3.0
+    'models/gemini-2.5-flash',            # Tier 3: Legacy (Fall 2025)
+    'models/gemini-1.5-flash'             # Tier 4: Legacy (Universal Backup)
 ]
 
 # --- GLOBAL EXHAUSTION TRACKING (V52.1) ---

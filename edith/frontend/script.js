@@ -5,8 +5,8 @@
 
 // Detect Electron context (preload.js exposes window.edith)
 // When running via file://, all API URLs must be absolute.
-const API_BASE = (window.edith || window.location.protocol === 'file:') 
-    ? 'http://localhost:5000' 
+const API_BASE = (window.edith || window.location.protocol === 'file:')
+    ? 'http://localhost:5000'
     : '';
 
 const UI = {
@@ -110,7 +110,7 @@ const ChatApp = {
         // Add a "Processing" message bubble and keep a reference
         const aiBubble = this.addMessage("", 'ai');
         aiBubble.classList.add('hologram-pulse');
-        aiBubble.textContent = "Synthesizing..."; 
+        aiBubble.textContent = "Synthesizing...";
 
         try {
             const res = await fetch(API_CONFIG.url, {
@@ -119,19 +119,19 @@ const ChatApp = {
                 body: JSON.stringify({ message, sessionId: this.sessionId })
             });
             const data = await res.json();
-            
+
             if (data.status === 'success') {
                 const aiAction = data.action;
-                
+
                 // 1. Show the Initial Acknowledgement
                 aiBubble.classList.remove('hologram-pulse');
                 aiBubble.textContent = aiAction.message || aiAction.response || '';
-                
+
                 // 2. Handle Execution Flow
                 if (aiAction.mode === 'execution' && aiAction.intent) {
                     // Enter Execution Phase
                     aiBubble.classList.add('hologram-pulse');
-                    
+
                     try {
                         const execRes = await fetch(`${API_BASE}/api/execute`, {
                             method: 'POST',
@@ -166,7 +166,7 @@ const ChatApp = {
                         aiBubble.textContent = `Execution Error: ${execErr.message}`;
                     }
                 }
-                
+
                 this.loadSessions();
             }
         } catch (err) {
@@ -279,14 +279,14 @@ const ChatApp = {
 
     addMessage(content, sender = 'ai', quiet = false) {
         if (UI.greeting) UI.greeting.style.display = 'none';
-        
+
         const div = document.createElement('div');
         div.className = `message ${sender}-message`;
         div.textContent = content || "";
         UI.window.appendChild(div);
-        
+
         UI.viewport.scrollTo({ top: UI.viewport.scrollHeight, behavior: quiet ? 'auto' : 'smooth' });
-        
+
         if (sender === 'ai' && !quiet && content) {
             const spokenContent = content.replace(/\[System:.*?\]/gs, '').trim();
             if (spokenContent) TTS.speak(spokenContent);
@@ -317,13 +317,13 @@ const DesktopBridge = {
                     this.hideOverlay();
                     return;
                 }
-            } catch (err) { 
+            } catch (err) {
                 lastError = err.message;
             }
             this.statusEl.textContent = `Connecting to EDITH... (attempt ${i + 1}/${retries})`;
             await new Promise(r => setTimeout(r, delay));
         }
-        
+
         // Backend never came online (Diagnostic V41.1)
         if (this.overlay) {
             this.statusEl.innerHTML = `
@@ -376,25 +376,30 @@ const DesktopBridge = {
         if (window.edith && window.edith.onBackendStatus) {
             window.edith.onBackendStatus((status) => {
                 if (status === 'down') this.showToast('⚠️  Backend offline — reconnecting...', '#ff6b6b');
-                else                   this.showToast('✅  Backend reconnected', '#00f2ff');
+                else this.showToast('✅  Backend reconnected', '#00f2ff');
             });
         }
 
         // 3. Title-bar button handlers
-        const btnMin   = document.getElementById('btn-minimize');
+        const btnMin = document.getElementById('btn-minimize');
+        const btnMax = document.getElementById('btn-maximize');
         const btnClose = document.getElementById('btn-close');
 
         if (btnMin) {
             btnMin.addEventListener('click', () => {
-                // Electron doesn't expose minimize from renderer directly,
-                // we use a utility function via the preload if available
-                if (window.edith) window.edith.hideWindow();
+                if (window.edith) window.edith.minimizeWindow();
+            });
+        }
+
+        if (btnMax) {
+            btnMax.addEventListener('click', () => {
+                if (window.edith) window.edith.maximizeWindow();
             });
         }
 
         if (btnClose) {
             btnClose.addEventListener('click', () => {
-                if (window.edith) window.edith.hideWindow();
+                if (window.edith) window.edith.closeWindow();
             });
         }
     }

@@ -1,5 +1,6 @@
 const fs = require('fs').promises;
 const path = require('path');
+const nativePaths = require('../core/utils/native_paths');
 const FileIndex = require('../database/file_index.model');
 
 /**
@@ -11,13 +12,9 @@ const FileIndex = require('../database/file_index.model');
 class Indexer {
     constructor() {
         this.batchSize = 500;
-        this.rootPaths = [
-            path.join(process.env.USERPROFILE || process.env.HOME || "", 'Desktop'),
-            path.join(process.env.USERPROFILE || process.env.HOME || "", 'Documents'),
-            path.join(process.env.USERPROFILE || process.env.HOME || "", 'Downloads')
-        ];
-        console.log('[Indexer] Initialized paths:', this.rootPaths);
+        this.rootPaths = nativePaths.getRoots();
         this.excludedDirs = ['node_modules', '.git', '$RECYCLE.BIN', 'System Volume Information'];
+        console.log('[Indexer] Target roots:', this.rootPaths);
     }
 
     /**

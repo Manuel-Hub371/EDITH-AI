@@ -88,6 +88,11 @@ class AutomationEngine {
     }
 
     async readFile(filePath) {
+        const stats = await this.fs.stat(filePath);
+        if (stats.isDirectory()) {
+            const files = await this.fs.readdir(filePath);
+            return `Contents of ${path.basename(filePath)}: ${files.join(', ')}`;
+        }
         return await this.fs.readFile(filePath, 'utf8');
     }
 

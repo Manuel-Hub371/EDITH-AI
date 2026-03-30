@@ -6,25 +6,15 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('edith', {
-    /**
-     * Check if the backend Node server is ready.
-     */
     checkHealth: () => ipcRenderer.invoke('check-health'),
-
-    /**
-     * Get the current app version.
-     */
     getVersion: () => ipcRenderer.invoke('get-version'),
-
-    /**
-     * Show/hide the window programmatically.
-     */
+    
+    // Window Controls
     hideWindow: () => ipcRenderer.send('hide-window'),
+    minimizeWindow: () => ipcRenderer.send('minimize-window'),
+    maximizeWindow: () => ipcRenderer.send('maximize-window'),
+    closeWindow: () => ipcRenderer.send('close-window'), // Usually hides to tray
 
-    /**
-     * Listen for backend status updates from the main process.
-     * @param {Function} callback - Called with (status: 'up' | 'down')
-     */
     onBackendStatus: (callback) => {
         ipcRenderer.on('backend-status', (_event, status) => callback(status));
     }

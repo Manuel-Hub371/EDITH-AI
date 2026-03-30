@@ -2,6 +2,7 @@ const EventEmitter = require('events');
 const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const nativePaths = require('../core/utils/native_paths');
 const systemState = require('./system_state');
 
 /**
@@ -28,9 +29,9 @@ class SystemEventListener extends EventEmitter {
         this.isRunning = true;
 
         this._watchNetwork();
-        this._watchDownloads();
         this._watchProcesses();
         this._watchUSB();
+        this._watchDownloads();
         this._log('Listeners Started', 'OK');
     }
 
@@ -123,8 +124,11 @@ class SystemEventListener extends EventEmitter {
      * Monitor Downloads Folder
      */
     _watchDownloads() {
-        const downloadsPath = path.join(process.env.USERPROFILE, 'Downloads');
-        if (!fs.existsSync(downloadsPath)) return;
+        const downloadsPath = nativePaths.get('downloads');
+        if (!fs.existsSync(downloadsPath)) {
+            console.warn(`[EventListener] Downloads path not found: ${downloadsPath}`);
+            return;
+        }
 
         fs.watch(downloadsPath, (eventType, filename) => {
             if (eventType === 'rename' && filename) {

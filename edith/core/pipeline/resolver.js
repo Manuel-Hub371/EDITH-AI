@@ -1,9 +1,10 @@
+const os = require('os');
+const path = require('path');
+const nativePaths = require('../utils/native_paths');
 const searchService = require('../../services/search');
 const learningService = require('../../services/learning');
 const aliasService = require('../../services/alias');
 const fs = require('fs');
-const os = require('os');
-const path = require('path');
 
 
 /**
@@ -22,44 +23,31 @@ class Resolver {
         };
     }
 
-    _healPath(target) {
+    async _healPath(target) {
         if (!target) return target;
         
-        const home = os.homedir();
-        const username = os.userInfo().username;
-
-        // 1. Replace AI placeholders with exact OS user
-        target = target.replace(/<current_user>|\{current_user\}|<username>|\{username\}/gi, username);
-        
-        // Handle explicit AI directory structures like C:\Users\<current_user>
-        target = target.replace(/c:[\\\/]+users[\\\/]+[a-z0-9_.-]+/ig, (match) => {
-            if (match.toLowerCase().includes(username.toLowerCase())) {
-                return home;
-            }
-            return match;
-        });
-        
+        const paths = nativePaths.getAll();
         const cleanTarget = target.toLowerCase().trim().replace(/\\/g, '/'); // Normalize slashes for matching
         const parts = cleanTarget.split('/');
         
-        const baseFolders = ['desktop', 'documents', 'downloads', 'music', 'pictures', 'videos'];
-        
-        // Check if the target is a base folder or starts with one
-        if (baseFolders.includes(parts[0])) {
-            const folderName = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
-            const baseFolderPath = path.join(home, folderName);
+        // 1. GUID-Based Resolve (V54.1 True-Native)
+        // If the path starts with a known folder (desktop, documents, etc.),
+        // swap it for the actual native shell path.
+        const folderKey = parts[0];
+        if (paths[folderKey]) {
+            const baseFolderPath = paths[folderKey];
             
             if (parts.length === 1) {
                 return baseFolderPath;
             } else {
-                // Join the base folder path with the rest of the subpath
+                // Join the actual OS path with the rest of the sub-path
                 return path.join(baseFolderPath, target.substring(parts[0].length).replace(/^[\\\/]+/, ''));
             }
         }
 
-        // 2. Direct home directory normalization
+        // 2. Direct home directory normalization (handle ~/ or ~\)
         if (target.startsWith('~\\') || target.startsWith('~/')) {
-            return path.join(home, target.substring(2));
+            return path.join(paths.home, target.substring(2));
         }
 
         return target;
@@ -80,7 +68,7 @@ class Resolver {
     async resolve(target, intent) {
         if (!target) return { path: null, needsConfirmation: false };
 
-        let query = this._healPath(target);
+        let query = await this._healPath(target);
 
         // 0. App Normalization Gate
         if (intent && (intent.includes('APPLICATION') || intent.includes('WINDOW'))) {

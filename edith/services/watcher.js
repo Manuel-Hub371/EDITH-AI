@@ -1,6 +1,7 @@
 const chokidar = require('chokidar');
 const path = require('path');
 const fs = require('fs').promises;
+const nativePaths = require('../core/utils/native_paths');
 const FileIndex = require('../database/file_index.model');
 
 /**
@@ -11,11 +12,8 @@ const FileIndex = require('../database/file_index.model');
  */
 class Watcher {
     constructor() {
-        this.watchPaths = [
-            path.join(process.env.USERPROFILE, 'Desktop'),
-            path.join(process.env.USERPROFILE, 'Documents'),
-            path.join(process.env.USERPROFILE, 'Downloads')
-        ];
+        // Synchronously initialize watch paths (V54.1)
+        this.watchPaths = nativePaths.getRoots();
         this.watcher = null;
     }
 
