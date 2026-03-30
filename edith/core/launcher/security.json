@@ -1,9 +1,0 @@
-{
-    "blocklist": [".cmd", ".bat", ".ps1", ".vbs", ".scr", ".jar", ".js", ".vbe", ".jse", ".wsf", ".wsh"],
-    "safe_extensions": [".exe", ".lnk"],
-    "system_paths": [
-        "C:\\Program Files",
-        "C:\\Program Files (x86)",
-        "C:\\Windows\\System32"
-    ]
-}

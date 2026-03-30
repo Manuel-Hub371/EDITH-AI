@@ -1,3 +1,8 @@
+# Environment Secrets (CRITICAL)
+.env
+.env.local
+edith/core/launcher/security.json
+
 # Python
 __pycache__/
 *.py[cod]
@@ -5,7 +10,6 @@ __pycache__/
 venv/
 .venv/
 env/
-.env/
 
 # Workspace
 .vscode/
@@ -16,11 +20,12 @@ edith/logs/
 edith/brain/
 *.log
 
-# Build artifacts
+# Build Artifacts
 dist/
 release/
 node_modules/
 
-# Test artifacts
+# Diagnostics & Tests
 tests/*.json
 model_test_results.json
+check_models.py
