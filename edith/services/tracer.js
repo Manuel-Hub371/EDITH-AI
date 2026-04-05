@@ -26,7 +26,7 @@ class Tracer {
     }
     
     // Tag wrappers
-    static input(msg) { this.log('INPUT', msg); }
+    static edith(msg) { this.log('EDITH', msg); }
     static nlp(msg) { this.log('NLP', msg); }
     static memory(msg) { this.log('MEMORY', msg); }
     static resolver(msg) { this.log('RESOLVER', msg); }

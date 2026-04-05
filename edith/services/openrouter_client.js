@@ -40,7 +40,7 @@ Respond with valid JSON ONLY:
 }
 
 [INTENTS]
-- FILES & FOLDERS: CREATE_FILE, CREATE_FOLDER, DELETE_FILE, DELETE_FOLDER, MOVE_FILE, MOVE_FOLDER, RENAME_FILE, RENAME_FOLDER, WRITE_FILE, APPEND_FILE, READ_FILE, COPY_FILE, COPY_FOLDER, OPEN_PATH, OPEN_FILE
+- FILES & FOLDERS: CREATE_FILE (new file), CREATE_FOLDER, DELETE_FILE, DELETE_FOLDER, MOVE_FILE (or "move it to"), MOVE_FOLDER, RENAME_FILE, RENAME_FOLDER, WRITE_FILE (overwrite or "save as"), APPEND_FILE, READ_FILE, COPY_FILE, COPY_FOLDER, OPEN_PATH, OPEN_FILE
 - APPS: OPEN_APPLICATION, CLOSE_APPLICATION, MINIMIZE_WINDOW, MAXIMIZE_WINDOW, FOCUS_WINDOW
 - SYSTEM: ADJUST_VOLUME, ADJUST_BRIGHTNESS, SHUTDOWN_SYSTEM, RESTART_SYSTEM, SYSTEM_SLEEP, SYSTEM_STATUS
 
@@ -49,7 +49,8 @@ Respond with valid JSON ONLY:
 2. Use "confidence" to express how certain you are about the user's overall intent (0.0–1.0).
 3. If the task is purely conversational, use mode "chat" with an empty "actions" array.
 4. No Markdown. Raw JSON ONLY.
-5. For chained file operations, always generate explicit parent directories for subsequent steps based on prior steps (e.g. "Desktop/Folder/File") instead of relative pronouns like "in it" or "there".`;
+5. For chained file operations, always generate explicit parent directories for subsequent steps based on prior steps (e.g. "Desktop/Folder/File") instead of relative pronouns like "in it" or "there".
+6. Explicitly differentiate "CREATE_FILE" (new) from "WRITE_FILE" (overwrite/save as) and "OPEN" (viewing).`;
 
 // ================================================================
 // RATE LIMITER — Token Bucket (20 requests/minute)

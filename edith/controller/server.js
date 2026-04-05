@@ -94,7 +94,7 @@ app.post('/api/chat', async (req, res) => {
     const { message, sessionId } = req.body;
     if (!message) return res.status(400).json({ status: "error", message: "Message is required." });
 
-    Tracer.input(message);
+    Tracer.edith(message);
 
     try {
         const historyData = await Chat.find({ sessionId }).sort({ timestamp: -1 }).limit(10);
@@ -402,6 +402,9 @@ app.post('/api/execute/confirm', async (req, res) => {
             const step = remainingSteps[i];
             const target = step.parameters ? (step.parameters.path || step.parameters.app || step.parameters.target) : '';
             
+            // Log multi-step progress during resumption
+            Tracer.multiStep(`Resuming step ${i+1}/${remainingSteps.length} (Context: Multi-step Queue)`);
+
             const stepAction = { intent: step.intent, parameters: step.parameters || {} };
             const stepResult = await dispatcher.dispatch(stepAction);
 

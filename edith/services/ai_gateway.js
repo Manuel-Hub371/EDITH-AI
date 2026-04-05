@@ -30,8 +30,8 @@ const LOG_PATH = path.join(__dirname, '../logs/gateway_audit.log');
 const NVIDIA_SIGNALS = [
     /\b(organize|sort|clean up|restructure|categorize|arrange)\b/i,
     /\b(analyze|summarize|review)\b/i,
-    /\b(first|then|after that|next|finally|step \d)\b/i,
-    /\b(and then|and also|followed by)\b/i
+    /\b(first|then|after that|next|finally|followed by|step \d)\b/i,
+    /\b(and then|and also|afterwards|sequential|sequence)\b/i
 ];
 
 // Signals that indicate tasks best suited for OpenRouter (Code creation, deep logic)
