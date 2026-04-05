@@ -2,6 +2,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 const axios = require('axios');
 const openRouter = require('./openrouter_client');
+const nvidia = require('./nvidia_client');
 const fs = require('fs');
 
 // System Trace Logging
@@ -25,27 +26,23 @@ const LOG_PATH = path.join(__dirname, '../logs/gateway_audit.log');
 // TASK COMPLEXITY CLASSIFIER
 // ================================================================
 
-// Signals that indicate a complex task requiring advanced reasoning
-const COMPLEX_SIGNALS = [
-    // Multi-step keywords
+// Signals that indicate tasks best suited for NVIDIA NIM (Planning, Multistep)
+const NVIDIA_SIGNALS = [
     /\b(organize|sort|clean up|restructure|categorize|arrange)\b/i,
-    /\b(analyze|summarize|explain|compare|evaluate|review)\b/i,
-    /\b(find all|list all|scan all|check all|audit)\b.*\b(and|then|also)\b/i,
+    /\b(analyze|summarize|review)\b/i,
+    /\b(first|then|after that|next|finally|step \d)\b/i,
+    /\b(and then|and also|followed by)\b/i
+];
 
-    // Reasoning & generation
+// Signals that indicate tasks best suited for OpenRouter (Code creation, deep logic)
+const OPENROUTER_SIGNALS = [
+    /\b(explain|compare|evaluate)\b/i,
+    /\b(find all|list all|scan all|check all|audit)\b.*\b(and|then|also)\b/i,
     /\b(write a\s(\w+\s)?script|write code|generate code|create a\s(\w+\s)?program)\b/i,
     /\b(why does|how does|what causes|explain why)\b/i,
     /\b(suggest|recommend|advise|help me decide)\b/i,
-
-    // Multi-step chaining
-    /\b(first|then|after that|next|finally|step \d)\b/i,
-    /\b(and then|and also|followed by)\b/i,
-
-    // Data analysis
     /\b(largest files|biggest folders|disk usage|storage analysis)\b/i,
     /\b(count|total|average|statistics|breakdown)\b/i,
-
-    // Complex questions
     /\b(what are the differences|pros and cons|trade-?offs)\b/i
 ];
 
@@ -76,25 +73,40 @@ function classifyTask(message) {
     }
 
     // 2. Count complex signals
-    let complexScore = 0;
+    let nvidiaScore = 0;
+    let openrouterScore = 0;
     let matchedSignal = '';
-    for (const pattern of COMPLEX_SIGNALS) {
+
+    for (const pattern of NVIDIA_SIGNALS) {
         if (pattern.test(trimmed)) {
-            complexScore++;
-            if (!matchedSignal) matchedSignal = pattern.source.substring(0, 40);
+            nvidiaScore++;
+            if (!matchedSignal) matchedSignal = `NVIDIA: ${pattern.source.substring(0, 30)}`;
         }
     }
 
-    // 3. Length heuristic — very long messages tend to be complex
-    if (trimmed.length > 200) complexScore += 0.5;
-    if (trimmed.split(/[.!?]/).length > 3) complexScore += 0.5; // Multiple sentences
+    for (const pattern of OPENROUTER_SIGNALS) {
+        if (pattern.test(trimmed)) {
+            openrouterScore++;
+            if (!matchedSignal) matchedSignal = `OR: ${pattern.source.substring(0, 30)}`;
+        }
+    }
+
+    // 3. Length heuristic — very long messages tend to need planning
+    if (trimmed.length > 200) nvidiaScore += 0.5;
+    if (trimmed.split(/[.!?]/).length > 3) nvidiaScore += 0.5; // Multiple sentences
 
     // 4. Route decision
-    if (complexScore >= 1) {
+    if (nvidiaScore >= 1 && nvidiaScore >= openrouterScore) {
+        return {
+            route: 'nvidia',
+            confidence: Math.min(0.95, 0.6 + nvidiaScore * 0.1),
+            reason: `Planning signal: ${matchedSignal}`
+        };
+    } else if (openrouterScore >= 1) {
         return {
             route: 'openrouter',
-            confidence: Math.min(0.95, 0.6 + complexScore * 0.1),
-            reason: `Complex signal: ${matchedSignal || 'multi-factor'}`
+            confidence: Math.min(0.95, 0.6 + openrouterScore * 0.1),
+            reason: `Reasoning signal: ${matchedSignal}`
         };
     }
 
@@ -187,51 +199,51 @@ async function route(message, history = [], context = null) {
     let result = null;
     let usedRoute = classification.route;
 
-    // ---- PRIMARY ATTEMPT ----
-    try {
-        if (classification.route === 'openrouter') {
-            const rawText = await openRouter.query(message, history, context);
-            result = normalizeResponse(rawText, 'openrouter');
-        } else {
-            const aiResponse = await axios.post(`${GOOGLE_AI_URL}/process`, {
-                message,
-                history,
-                context
-            }, { timeout: 30000, proxy: false });
-            result = normalizeResponse(JSON.stringify(aiResponse.data), 'google');
-        }
-    } catch (primaryErr) {
-        console.warn(`[Gateway] Primary route (${classification.route}) failed: ${primaryErr.message}`);
+    // Ordered cascade based on primary route
+    const cascade = classification.route === 'nvidia' 
+        ? ['nvidia', 'openrouter', 'google']
+        : classification.route === 'openrouter' 
+            ? ['openrouter', 'nvidia', 'google']
+            : ['google', 'nvidia', 'openrouter']; // If Google fails, try nvidia then OR
 
-        // ---- FALLBACK ATTEMPT ----
+    let lastErr = null;
+
+    for (let currentRoute of cascade) {
         try {
-            const fallbackRoute = classification.route === 'google' ? 'openrouter' : 'google';
-            usedRoute = fallbackRoute;
-            console.log(`[Gateway] Falling back to ${fallbackRoute.toUpperCase()}...`);
+            usedRoute = currentRoute;
+            console.log(`[Gateway] Attempting route: ${currentRoute.toUpperCase()}...`);
 
-            if (fallbackRoute === 'openrouter') {
+            if (currentRoute === 'nvidia') {
+                const rawText = await nvidia.query(message, history, context);
+                result = normalizeResponse(rawText, 'nvidia');
+                break; // Success
+            } else if (currentRoute === 'openrouter') {
                 const rawText = await openRouter.query(message, history, context);
                 result = normalizeResponse(rawText, 'openrouter');
+                break; // Success
             } else {
                 const aiResponse = await axios.post(`${GOOGLE_AI_URL}/process`, {
-                    message,
-                    history,
-                    context
+                    message, history, context
                 }, { timeout: 30000, proxy: false });
                 result = normalizeResponse(JSON.stringify(aiResponse.data), 'google');
+                break; // Success
             }
-        } catch (fallbackErr) {
-            console.error(`[Gateway] Both APIs failed. Primary: ${primaryErr.message}, Fallback: ${fallbackErr.message}`);
-
-            result = {
-                mode: 'chat',
-                intent: null,
-                parameters: {},
-                confidence: 0,
-                message: 'Both AI engines are temporarily unavailable. Please try again in a moment.',
-                _source: 'fallback_exhausted'
-            };
+        } catch (err) {
+            console.warn(`[Gateway] Route ${currentRoute.toUpperCase()} failed: ${err.message}`);
+            lastErr = err;
         }
+    }
+
+    if (!result) {
+        console.error(`[Gateway] ALL APIs failed. Last error: ${lastErr.message}`);
+        result = {
+            mode: 'chat',
+            intent: null,
+            parameters: {},
+            confidence: 0,
+            message: 'All AI engine connections are temporarily unavailable. Please try again in a moment.',
+            _source: 'fallback_exhausted'
+        };
     }
 
     const latency = Date.now() - startTime;
