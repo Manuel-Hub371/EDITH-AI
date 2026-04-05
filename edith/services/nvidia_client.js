@@ -50,7 +50,7 @@ Respond with valid JSON ONLY:
 3. If the task is purely conversational, use mode "chat" with an empty "actions" array.
 4. No Markdown. Raw JSON ONLY.
 5. For chained file operations, always generate explicit parent directories for subsequent steps based on prior steps (e.g. "Desktop/Folder/File") instead of relative pronouns like "in it" or "there".
-6. Explicitly differentiate "CREATE_FILE" (new) from "WRITE_FILE" (overwrite/save as) and "OPEN" (viewing).`;
+6. STRICT INTENT SAFETY: If the user says "create", "make", "save", or "write", you MUST use CREATE_FILE, CREATE_FOLDER, or WRITE_FILE. NEVER use OPEN_FILE for these actions. OPEN_FILE is strictly for viewing existing assets. If a target doesn't exist yet, you MUST create it first in the action sequence.`;
 
 // ================================================================
 // RATE LIMITER

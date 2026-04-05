@@ -74,12 +74,24 @@ async function spawnServices() {
         env: { ...process.env, PYTHON_PORT }
     });
 
-    // Pipe outputs to centralized log
+    // Pipe outputs to centralized log and send to Electron console via IPC
     [nodeProcess, pythonProcess].forEach((proc, idx) => {
         if (!proc) return;
         const name = idx === 0 ? 'NODE' : 'PYTHON';
-        proc.stdout.on('data', (data) => logStream.write(`[${name}_STDOUT] ${data}`));
-        proc.stderr.on('data', (data) => logStream.write(`[${name}_STDERR] ${data}`));
+        proc.stdout.on('data', (data) => {
+            const str = data.toString();
+            logStream.write(`[${name}_STDOUT] ${str}`);
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('backend-trace', str);
+            }
+        });
+        proc.stderr.on('data', (data) => {
+            const str = data.toString();
+            logStream.write(`[${name}_STDERR] ${str}`);
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('backend-trace', str);
+            }
+        });
         proc.on('close', (code) => {
             console.warn(`[Main] ${name} process exited with code ${code}`);
             logStream.write(`[${name}_EXIT] Process closed with code ${code}\n`);
@@ -125,6 +137,10 @@ function createWindow() {
 
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
+        // Automatically open DevTools in development or if forced
+        if (IS_DEV || process.env.EDITH_DEBUG === 'true') {
+            mainWindow.webContents.openDevTools({ mode: 'detach' });
+        }
     });
 
     mainWindow.on('close', (event) => {

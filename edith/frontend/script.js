@@ -96,6 +96,18 @@ const ChatApp = {
         this.bindEvents();
         this.loadHistory();
         this.loadSessions();
+
+        // Real-time Backend Trace Forwarding to DevTools
+        if (window.edith && window.edith.onBackendTrace) {
+            window.edith.onBackendTrace((data) => {
+                // If it's a trace message (starts with []), use styles
+                if (data.includes('[') && data.includes(']')) {
+                    console.log(`%c${data.trim()}`, 'color: #00d2ff; font-weight: bold;');
+                } else {
+                    console.log(data.trim());
+                }
+            });
+        }
     },
 
     generateSessionId() { return 'sess_' + Math.random().toString(36).substring(2, 15); },

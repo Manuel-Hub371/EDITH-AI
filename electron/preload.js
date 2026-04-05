@@ -15,7 +15,6 @@ contextBridge.exposeInMainWorld('edith', {
     maximizeWindow: () => ipcRenderer.send('maximize-window'),
     closeWindow: () => ipcRenderer.send('close-window'), // Usually hides to tray
 
-    onBackendStatus: (callback) => {
-        ipcRenderer.on('backend-status', (_event, status) => callback(status));
-    }
+    onBackendStatus: (callback) => ipcRenderer.on('backend-status', (_event, status) => callback(status)),
+    onBackendTrace: (callback) => ipcRenderer.on('backend-trace', (_event, data) => callback(data))
 });
