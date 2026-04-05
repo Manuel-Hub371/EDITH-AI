@@ -7,6 +7,9 @@ const processManager = require('../core/launcher/processManager');
 const SearchService = require('../services/search');
 const Sandbox = require('../security/sandbox');
 
+// System Trace Logging
+const Tracer = require('../services/tracer');
+
 const securityGate = new Sandbox();
 
 /**
@@ -90,10 +93,21 @@ class ActionDispatcher {
 
         // 1.8 Sandbox Validation Gate (Phase 3 Prep)
         if (!confirmed) {
-            const riskLevel = securityGate.validate(finalTarget, intent);
-            if (riskLevel === 'HIGH') {
-                return { status: 'NEED_CONFIRMATION', intent, target: finalTarget };
+            try {
+                const riskLevel = securityGate.validate(finalTarget, intent);
+                Tracer.sandbox(`Risk: ${riskLevel} | Intent: ${intent} | Target: ${finalTarget}`);
+                if (riskLevel === 'HIGH') {
+                    Tracer.sandbox(`BLOCKED: Requires user confirmation.`);
+                    return { status: 'NEED_CONFIRMATION', intent, target: finalTarget };
+                }
+                Tracer.sandbox(`PASSED`);
+            } catch (secErr) {
+                // validate() throws if strictly Forbidden
+                Tracer.sandbox(`BLOCKED: ${secErr.message}`);
+                throw secErr;
             }
+        } else {
+            Tracer.sandbox(`PASSED (User Confirmed)`);
         }
 
         // 1.9 Unified Execution Routing (Phase 3)

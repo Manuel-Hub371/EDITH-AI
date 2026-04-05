@@ -6,6 +6,9 @@ const learningService = require('../../services/learning');
 const aliasService = require('../../services/alias');
 const fs = require('fs');
 
+// System Trace Logging
+const Tracer = require('../../services/tracer');
+
 
 /**
  * Resolver Pipeline (V53.3)
@@ -59,9 +62,15 @@ class Resolver {
             .replace(/^(open|launch|start|run|go to|show me)\s+/, '')
             .replace(/\.exe$/, '');
         
-        if (this.appAliases[clean]) return this.appAliases[clean];
+        if (this.appAliases[clean]) {
+            Tracer.memory(`App Alias Hit: '${clean}' -> '${this.appAliases[clean]}'`);
+            return this.appAliases[clean];
+        }
         const coreName = clean.split(' ')[0];
-        if (this.appAliases[coreName]) return this.appAliases[coreName];
+        if (this.appAliases[coreName]) {
+            Tracer.memory(`App Alias Hit (core name): '${coreName}' -> '${this.appAliases[coreName]}'`);
+            return this.appAliases[coreName];
+        }
         return coreName;
     }
 
@@ -85,6 +94,7 @@ class Resolver {
         const aliasEntry = await aliasService.resolve(query);
         if (aliasEntry) {
             console.log(`[Resolver] Phase 2 Alias Match Hit: "${query}" -> ${aliasEntry.targetPath}`);
+            Tracer.memory(`Global Alias Hit: "${query}" -> ${aliasEntry.targetPath}`);
             return {
                 bestMatch: {
                     path: aliasEntry.targetPath,
@@ -99,6 +109,7 @@ class Resolver {
 
         // 2. Check for Absolute Paths (Bypass search)
         if (query.includes(':') || query.includes('\\')) {
+            Tracer.resolver(`Absolute Path Direct Match: ${query}`);
             return {
                 bestMatch: { path: query, name: query, type: 'file' },
                 needsConfirmation: false
@@ -107,10 +118,12 @@ class Resolver {
 
         // 3. Query Phase 1 Index & Calculate Confidence
         console.log(`[Resolver] Phase 1 Index Search: "${query}" for intent: ${intent}`);
+        Tracer.resolver(`Phase 1 Index Search Executed | Query: "${query}"`);
         const rawResults = await searchService.find(query, { limit: 10 });
         const resolved = await learningService.rankAndScore(query, rawResults);
 
         if (!resolved) {
+            Tracer.resolver(`Phase 1 Index Search Failed to find robust match.`);
             // OS-level fallback for unregistered executable names
             if (intent && (intent.includes('APPLICATION') || intent.includes('WINDOW'))) {
                  console.log(`[Resolver] Falling back to system shell target: ${query}`);

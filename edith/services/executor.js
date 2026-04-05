@@ -2,6 +2,7 @@ const { exec } = require('child_process');
 const Sentry = require('@sentry/node');
 const path = require('path');
 const fs = require('fs');
+const Tracer = require('./tracer');
 
 /**
  * Executor Service (v1.0)
@@ -20,12 +21,15 @@ class ExecutorService {
     async executeCMD(command) {
         return new Promise((resolve, reject) => {
             console.log(`[Executor] CMD: ${command}`);
+            Tracer.executor(`Tool: CMD | Executing: ${command}`);
             exec(command, (error, stdout, stderr) => {
                 this.logResult('CMD', command, !error);
                 if (error) {
                     Sentry.captureException(error);
+                    Tracer.executor(`FAILED: ${stderr || error.message}`);
                     return reject(new Error(stderr || error.message));
                 }
+                Tracer.executor(`SUCCESS: ${stdout ? stdout.trim().substring(0, 150) : "No output"}`);
                 resolve(stdout.trim());
             });
         });
@@ -38,12 +42,15 @@ class ExecutorService {
         const psCommand = `powershell -NoProfile -ExecutionPolicy Bypass -Command "${command.replace(/"/g, '\"')}"`;
         return new Promise((resolve, reject) => {
             console.log(`[Executor] PS: ${command}`);
+            Tracer.executor(`Tool: PowerShell | Executing: ${command.substring(0, 100)}...`);
             exec(psCommand, (error, stdout, stderr) => {
                 this.logResult('PS', command, !error);
                 if (error) {
                     Sentry.captureException(error);
+                    Tracer.executor(`FAILED: ${stderr || error.message}`);
                     return reject(new Error(stderr || error.message));
                 }
+                Tracer.executor(`SUCCESS: ${stdout ? stdout.trim().substring(0, 150) : "No output"}`);
                 resolve(stdout.trim());
             });
         });

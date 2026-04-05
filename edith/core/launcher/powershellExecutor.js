@@ -1,5 +1,6 @@
 const { exec } = require('child_process');
 const path = require('path');
+const Tracer = require('../../services/tracer');
 
 /**
  * PowerShellExecutor (V50.0 Production Bridge)
@@ -59,11 +60,15 @@ class PowerShellExecutor {
                 ? `powershell -Command "Start-Process '${fullPath}' -ErrorAction Stop"`
                 : `powershell -Command "(Start-Process -FilePath '${fullPath}' -PassThru -ErrorAction Stop).Id"`;
             
+            Tracer.executor(`Tool: PowerShell | Mode: Launch | Command: ${command.substring(0, 150)}`);
+
             exec(command, (error, stdout, stderr) => {
                 if (error || stderr) {
+                    Tracer.executor(`FAILED: ${stderr || (error ? error.message : "OS_LAUNCH_FAULT")}`);
                     return reject(new Error(stderr || (error ? error.message : "OS_LAUNCH_FAULT")));
                 }
                 const pid = parseInt(stdout.trim());
+                Tracer.executor(`SUCCESS: process launched -> PID ${pid}`);
                 resolve(isNaN(pid) ? 0 : pid);
             });
         });
@@ -74,8 +79,13 @@ class PowerShellExecutor {
      */
     async execute(command) {
         return new Promise((resolve, reject) => {
+            Tracer.executor(`Tool: CMD/PowerShell | Executing: ${command.substring(0, 150)}...`);
             exec(command, (error, stdout, stderr) => {
-                if (error) return reject(new Error(stderr || error.message));
+                if (error) {
+                    Tracer.executor(`FAILED: ${stderr || error.message}`);
+                    return reject(new Error(stderr || error.message));
+                }
+                Tracer.executor(`SUCCESS: ${stdout ? stdout.trim().substring(0, 200) : "No output"}`);
                 resolve(stdout ? stdout.trim() : "");
             });
         });

@@ -4,6 +4,9 @@ const axios = require('axios');
 const openRouter = require('./openrouter_client');
 const fs = require('fs');
 
+// System Trace Logging
+const Tracer = require('./tracer');
+
 /**
  * AI Gateway (Phase 4 — V55.1)
  * 
@@ -246,6 +249,15 @@ async function route(message, history = [], context = null) {
     });
 
     console.log(`[Gateway] ✅ Responded via ${(result._source || usedRoute).toUpperCase()} in ${latency}ms | Mode: ${result.mode} | Intent: ${result.intent || 'N/A'}`);
+
+    // TRACE LOGGING for EDITH Full Debug Mode
+    Tracer.nlp(`Routed: ${(result._source || usedRoute).toUpperCase()} | Confidence: ${result.confidence}`);
+    Tracer.nlp(`Reason: ${classification.reason} | Mode: ${result.mode}`);
+    if (result.actions && result.actions.length > 0) {
+        Tracer.nlp(`Parsed Intents: ${result.actions.map(a => a.intent).join(' → ')}`);
+    } else {
+        Tracer.nlp(`Parsed Intent: ${result.intent || 'NONE'}`);
+    }
 
     return result;
 }
