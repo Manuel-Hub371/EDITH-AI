@@ -219,12 +219,12 @@ app.post('/api/execute', async (req, res) => {
             logAction(stepAction.intent, target, result.success ? 'SUCCESS' : 'FAILURE');
 
             if (result.success !== false) {
-                Tracer.multiStep(`Step ${i+1}: ${stepAction.intent} → SUCCESS`);
                 executedSteps.push({ intent: stepAction.intent, target, message: result.message });
+                Tracer.multiStep(`Step ${i+1}: ${stepAction.intent} → SUCCESS`);
             } else {
-                Tracer.multiStep(`Step ${i+1}: ${stepAction.intent} → FAILED: ${result.message}`);
                 failedSteps.push({ intent: stepAction.intent, target, error: result.message });
                 finalMessage = `Execution halted: ${result.message}`;
+                Tracer.multiStep(`Step ${i+1}: ${stepAction.intent} → FAILED: ${result.message}`);
                 break; // Halt the sequence on failure
             }
         }

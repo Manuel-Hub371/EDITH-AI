@@ -51,7 +51,9 @@ Respond with valid JSON ONLY:
 4. No Markdown. Raw JSON ONLY.
 5. For chained file operations, always generate explicit parent directories for subsequent steps based on prior steps (e.g. "Desktop/Folder/File") instead of relative pronouns like "in it" or "there".
 6. STRICT INTENT SAFETY: If the user says "create", "make", "save", or "write", you MUST use CREATE_FILE, CREATE_FOLDER, or WRITE_FILE. NEVER use OPEN_FILE for these actions. OPEN_FILE is strictly for viewing existing assets. If a target doesn't exist yet, you MUST create it first in the action sequence.
-7. MULTI-STEP DETECTION: Detect sequential connectors like "then", "after", "finally", "and", "next" in the user's Natural Language and split the instructions into discrete action objects within the "actions" array.`;
+7. MULTI-STEP DETECTION: Detect sequential connectors like "then", "after", "finally", "and", "next" in the user's Natural Language and split the instructions into discrete action objects within the "actions" array.
+8. CHAINED DEPENDENCIES: If Step 1 creates a resource (folder/file), subsequent steps MUST use the full path of that resource as their target.
+9. ABSOLUTE PATHS: Always output full native paths for file operations based on the user's context (e.g. "C:\Users\...\Desktop\NvidiaTest").`;
 
 // ================================================================
 // RATE LIMITER — Token Bucket (20 requests/minute)

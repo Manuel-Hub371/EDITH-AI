@@ -31,7 +31,8 @@ const NVIDIA_SIGNALS = [
     /\b(organize|sort|clean up|restructure|categorize|arrange)\b/i,
     /\b(analyze|summarize|review)\b/i,
     /\b(first|then|after that|next|finally|followed by|step \d)\b/i,
-    /\b(and then|and also|afterwards|sequential|sequence)\b/i
+    /\b(and then|and also|afterwards|sequential|sequence)\b/i,
+    /\b(and save|and create|and move|and rename|and then create)\b/i
 ];
 
 // Signals that indicate tasks best suited for OpenRouter (Code creation, deep logic)
@@ -65,14 +66,8 @@ const SIMPLE_OVERRIDES = [
 function classifyTask(message) {
     const trimmed = message.trim();
 
-    // 1. Check simple overrides first (high-priority fast path)
-    for (const pattern of SIMPLE_OVERRIDES) {
-        if (pattern.test(trimmed)) {
-            return { route: 'google', confidence: 0.95, reason: 'Simple direct command' };
-        }
-    }
-
-    // 2. Count complex signals
+    // 1. Count complex signals (Reasoning/Planning)
+    // We check this FIRST to avoid simple keywords (like "Create") truncating multi-step intent.
     let nvidiaScore = 0;
     let openrouterScore = 0;
     let matchedSignal = '';
@@ -91,11 +86,11 @@ function classifyTask(message) {
         }
     }
 
-    // 3. Length heuristic — very long messages tend to need planning
+    // Length heuristic — very long messages tend to need planning
     if (trimmed.length > 200) nvidiaScore += 0.5;
     if (trimmed.split(/[.!?]/).length > 3) nvidiaScore += 0.5; // Multiple sentences
 
-    // 4. Route decision
+    // 2. Route to Reasoning Engine if complex signals are matched
     if (nvidiaScore >= 1 && nvidiaScore >= openrouterScore) {
         return {
             route: 'nvidia',
@@ -108,6 +103,13 @@ function classifyTask(message) {
             confidence: Math.min(0.95, 0.6 + openrouterScore * 0.1),
             reason: `Reasoning signal: ${matchedSignal}`
         };
+    }
+
+    // 3. Fallback: Check simple overrides for high-priority single-step commands
+    for (const pattern of SIMPLE_OVERRIDES) {
+        if (pattern.test(trimmed)) {
+            return { route: 'google', confidence: 0.95, reason: 'Simple direct command' };
+        }
     }
 
     // Default: simple task → Google AI
