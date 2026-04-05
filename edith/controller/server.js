@@ -94,7 +94,7 @@ app.post('/api/chat', async (req, res) => {
     const { message, sessionId } = req.body;
     if (!message) return res.status(400).json({ status: "error", message: "Message is required." });
 
-    Tracer.edith(message);
+    Tracer.edith(`Input: ${message}`);
 
     try {
         const historyData = await Chat.find({ sessionId }).sort({ timestamp: -1 }).limit(10);
@@ -166,9 +166,8 @@ app.post('/api/execute', async (req, res) => {
             const step = action.actions[i];
             const target = step.parameters ? (step.parameters.path || step.parameters.app || step.parameters.target) : '';
             
-            if (action.actions.length > 1) {
-                Tracer.multiStep(`Executing step ${i+1}/${action.actions.length}`);
-            }
+            // No pre-step log here, we log after completion of each step as requested.
+
 
             // Build the individual action object for the dispatcher to maintain Phase 1-3 compatibility
             const stepAction = {
@@ -220,20 +219,23 @@ app.post('/api/execute', async (req, res) => {
             logAction(stepAction.intent, target, result.success ? 'SUCCESS' : 'FAILURE');
 
             if (result.success !== false) {
+                Tracer.multiStep(`Step ${i+1}: ${stepAction.intent} → SUCCESS`);
                 executedSteps.push({ intent: stepAction.intent, target, message: result.message });
             } else {
+                Tracer.multiStep(`Step ${i+1}: ${stepAction.intent} → FAILED: ${result.message}`);
                 failedSteps.push({ intent: stepAction.intent, target, error: result.message });
                 finalMessage = `Execution halted: ${result.message}`;
-                Tracer.multiStep(`FAILED: ${result.message}`);
                 break; // Halt the sequence on failure
             }
         }
         
         if (failedSteps.length === 0 && executedSteps.length > 0) {
-            finalMessage = executedSteps.length > 1 ? `Successfully executed ${executedSteps.length} tasks.` : executedSteps[0].message;
+            finalMessage = executedSteps.length > 1 ? `Completed all ${executedSteps.length} steps.` : executedSteps[0].message;
         } else if (executedSteps.length === 0 && failedSteps.length === 0) {
            finalMessage = "No actionable steps found.";
         }
+        
+        Tracer.response(finalMessage);
 
         res.json({ 
             success: failedSteps.length === 0,

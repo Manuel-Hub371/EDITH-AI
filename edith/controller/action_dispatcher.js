@@ -63,6 +63,7 @@ class ActionDispatcher {
         }
 
         const finalTarget = resolved.bestMatch?.path || target;
+        Tracer.resolver(`${target} -> ${finalTarget}`);
 
         // --- 1.6 Intent Alignment based on OS Type ---
         if (intent.startsWith('OPEN') && finalTarget) {

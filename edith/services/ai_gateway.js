@@ -263,12 +263,12 @@ async function route(message, history = [], context = null) {
     console.log(`[Gateway] ✅ Responded via ${(result._source || usedRoute).toUpperCase()} in ${latency}ms | Mode: ${result.mode} | Intent: ${result.intent || 'N/A'}`);
 
     // TRACE LOGGING for EDITH Full Debug Mode
-    Tracer.nlp(`Routed: ${(result._source || usedRoute).toUpperCase()} | Confidence: ${result.confidence}`);
-    if (result.actions && result.actions.length > 0) {
-        Tracer.nlp(`Actions parsed: ${result.actions.map(a => a.intent).join(' → ')}`);
-    } else {
-        Tracer.nlp(`Action parsed: ${result.intent || 'NONE'}`);
-    }
+    const actionsDesc = result.actions && result.actions.length > 0 
+        ? result.actions.map(a => a.intent).join(' → ')
+        : (result.intent || 'NONE');
+    
+    Tracer.nlp(`Routed: ${(result._source || usedRoute).toUpperCase()} | Intent: ${actionsDesc}`);
+
 
     return result;
 }
