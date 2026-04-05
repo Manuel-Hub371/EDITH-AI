@@ -31,6 +31,9 @@ const learningService = require('../services/learning');
 const memoryService = require('../services/memory');
 const aliasService = require('../services/alias');
 
+// Phase 4: AI Gateway (Dual-API Router)
+const aiGateway = require('../services/ai_gateway');
+
 connectDB();
 
 const app = express();
@@ -118,13 +121,8 @@ app.post('/api/chat', async (req, res) => {
             }
         };
 
-        const aiResponse = await axios.post(`${AI_URL}/process`, { 
-            message, 
-            history,
-            context: aiContext 
-        }, { timeout: 30000, proxy: false });
-        
-        const aiAction = aiResponse.data;
+        // Phase 4: Route through AI Gateway (classifies complexity → Google AI or OpenRouter)
+        const aiAction = await aiGateway.route(message, history, aiContext);
         const chatRecord = new Chat({ sessionId, user: message, ai: aiAction });
         
         // Fire-and-forget save to database (Eliminates I/O wait)
