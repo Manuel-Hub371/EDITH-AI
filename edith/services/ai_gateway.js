@@ -66,8 +66,7 @@ const SIMPLE_OVERRIDES = [
 function classifyTask(message) {
     const trimmed = message.trim();
 
-    // 1. Count complex signals (Reasoning/Planning)
-    // We check this FIRST to avoid simple keywords (like "Create") truncating multi-step intent.
+    // 1. Initial Signal Scoring
     let nvidiaScore = 0;
     let openrouterScore = 0;
     let matchedSignal = '';
@@ -86,33 +85,37 @@ function classifyTask(message) {
         }
     }
 
-    // Length heuristic — very long messages tend to need planning
+    // 2. Length & Structural Heuristics
     if (trimmed.length > 200) nvidiaScore += 0.5;
-    if (trimmed.split(/[.!?]/).length > 3) nvidiaScore += 0.5; // Multiple sentences
+    if (trimmed.split(/[.!?]/).length > 3) nvidiaScore += 0.5;
 
-    // 2. Route to Reasoning Engine if complex signals are matched
+    // 3. LIVE TRACE FOR SCORING (CRITICAL FOR DEBUGGING)
+    Tracer.nlp(`Classification Scores: NVIDIA=${nvidiaScore}, OR=${openrouterScore}`);
+
+    // 4. MANDATORY REASONING GATE
+    // If ANY complex signals exist, we MUST route to a reasoning engine to ensure intent decomposition.
     if (nvidiaScore >= 1 && nvidiaScore >= openrouterScore) {
         return {
             route: 'nvidia',
             confidence: Math.min(0.95, 0.6 + nvidiaScore * 0.1),
-            reason: `Planning signal: ${matchedSignal}`
+            reason: `Planning signal detected: ${matchedSignal}`
         };
     } else if (openrouterScore >= 1) {
         return {
             route: 'openrouter',
             confidence: Math.min(0.95, 0.6 + openrouterScore * 0.1),
-            reason: `Reasoning signal: ${matchedSignal}`
+            reason: `Reasoning signal detected: ${matchedSignal}`
         };
     }
 
-    // 3. Fallback: Check simple overrides for high-priority single-step commands
+    // 5. SIMPLE OVERRIDES (ONLY for single-step direct tasks with no complex connectors)
     for (const pattern of SIMPLE_OVERRIDES) {
         if (pattern.test(trimmed)) {
             return { route: 'google', confidence: 0.95, reason: 'Simple direct command' };
         }
     }
 
-    // Default: simple task → Google AI
+    // 6. Default Fallback
     return { route: 'google', confidence: 0.8, reason: 'Default simple routing' };
 }
 
