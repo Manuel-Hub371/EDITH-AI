@@ -94,7 +94,7 @@ app.post('/api/chat', async (req, res) => {
     const { message, sessionId } = req.body;
     if (!message) return res.status(400).json({ status: "error", message: "Message is required." });
 
-    Tracer.input(`Raw user message: "${message}"`);
+    Tracer.input(message);
 
     try {
         const historyData = await Chat.find({ sessionId }).sort({ timestamp: -1 }).limit(10);
@@ -134,7 +134,7 @@ app.post('/api/chat', async (req, res) => {
         chatRecord.save().catch(err => console.error('[DB] Background save failed:', err.message));
 
         if (aiAction.mode === 'chat') {
-            Tracer.response(`Success: true | Message: ${aiAction.message || aiAction.response}`);
+            Tracer.response(aiAction.message || aiAction.response);
         }
 
         res.json({ status: "success", action: aiAction });
@@ -162,14 +162,13 @@ app.post('/api/execute', async (req, res) => {
         let failedSteps = [];
         let finalMessage = "Actions executed successfully.";
 
-        // 2. Sequential Execution Pipeline
-        Tracer.multiStep(`Total steps detected: ${action.actions.length}`);
-        
         for (let i = 0; i < action.actions.length; i++) {
             const step = action.actions[i];
             const target = step.parameters ? (step.parameters.path || step.parameters.app || step.parameters.target) : '';
             
-            Tracer.multiStep(`Executing step [${i+1}/${action.actions.length}]: Intent=${step.intent}`);
+            if (action.actions.length > 1) {
+                Tracer.multiStep(`Executing step ${i+1}/${action.actions.length}`);
+            }
 
             // Build the individual action object for the dispatcher to maintain Phase 1-3 compatibility
             const stepAction = {
@@ -222,11 +221,10 @@ app.post('/api/execute', async (req, res) => {
 
             if (result.success !== false) {
                 executedSteps.push({ intent: stepAction.intent, target, message: result.message });
-                Tracer.multiStep(`Step [${i+1}] Result: SUCCESS`);
             } else {
                 failedSteps.push({ intent: stepAction.intent, target, error: result.message });
                 finalMessage = `Execution halted: ${result.message}`;
-                Tracer.multiStep(`Step [${i+1}] Result: FAILED (${result.message})`);
+                Tracer.multiStep(`FAILED: ${result.message}`);
                 break; // Halt the sequence on failure
             }
         }
@@ -244,7 +242,7 @@ app.post('/api/execute', async (req, res) => {
             failedSteps
         });
 
-        Tracer.response(`Success: ${failedSteps.length === 0} | Executed: ${executedSteps.length} | Failed: ${failedSteps.length} | Message: ${finalMessage}`);
+        Tracer.response(finalMessage);
 
     } catch (err) {
         logAction(action?.actions?.[0]?.intent || 'UNKNOWN', '', `FAILURE: ${err.message}`);

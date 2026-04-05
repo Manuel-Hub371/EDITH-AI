@@ -3,6 +3,7 @@ const path = require('path');
 const executor = require('../executor');
 const FileIndex = require('../../database/file_index.model');
 const Alias = require('../../database/alias.model');
+const Tracer = require('../tracer');
 
 /**
  * Unified Automation Engine (v2.0)
@@ -82,29 +83,39 @@ class AutomationEngine {
 
     // --- File Operations ---
     async createFile(filePath, content = '') {
+        Tracer.executor(`fs.writeFile "${filePath}"`);
         await this.fs.writeFile(filePath, content, 'utf8');
         await this.sync(filePath, 'file');
+        Tracer.executor('SUCCESS');
         return `File created: ${filePath}`;
     }
 
     async readFile(filePath) {
+        Tracer.executor(`fs.readFile "${filePath}"`);
         const stats = await this.fs.stat(filePath);
         if (stats.isDirectory()) {
             const files = await this.fs.readdir(filePath);
+            Tracer.executor('SUCCESS');
             return `Contents of ${path.basename(filePath)}: ${files.join(', ')}`;
         }
-        return await this.fs.readFile(filePath, 'utf8');
+        const content = await this.fs.readFile(filePath, 'utf8');
+        Tracer.executor('SUCCESS');
+        return content;
     }
 
     async writeFile(filePath, content) {
+        Tracer.executor(`fs.writeFile "${filePath}"`);
         await this.fs.writeFile(filePath, content, 'utf8');
         await this.sync(filePath, 'file');
+        Tracer.executor('SUCCESS');
         return `Updated: ${filePath}`;
     }
 
     async appendFile(filePath, content) {
+        Tracer.executor(`fs.appendFile "${filePath}"`);
         await this.fs.appendFile(filePath, '\n' + content, 'utf8');
         await this.sync(filePath, 'file');
+        Tracer.executor('SUCCESS');
         return `Appended to: ${filePath}`;
     }
 

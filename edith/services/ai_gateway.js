@@ -264,11 +264,10 @@ async function route(message, history = [], context = null) {
 
     // TRACE LOGGING for EDITH Full Debug Mode
     Tracer.nlp(`Routed: ${(result._source || usedRoute).toUpperCase()} | Confidence: ${result.confidence}`);
-    Tracer.nlp(`Reason: ${classification.reason} | Mode: ${result.mode}`);
     if (result.actions && result.actions.length > 0) {
-        Tracer.nlp(`Parsed Intents: ${result.actions.map(a => a.intent).join(' → ')}`);
+        Tracer.nlp(`Actions parsed: ${result.actions.map(a => a.intent).join(' → ')}`);
     } else {
-        Tracer.nlp(`Parsed Intent: ${result.intent || 'NONE'}`);
+        Tracer.nlp(`Action parsed: ${result.intent || 'NONE'}`);
     }
 
     return result;

@@ -48,7 +48,8 @@ Respond with valid JSON ONLY:
 1. For multi-step tasks, break them into sequential intents within the "actions" array.
 2. Use "confidence" to express how certain you are about the user's overall intent (0.0–1.0).
 3. If the task is purely conversational, use mode "chat" with an empty "actions" array.
-4. No Markdown. Raw JSON ONLY.`;
+4. No Markdown. Raw JSON ONLY.
+5. For chained file operations, always generate explicit parent directories for subsequent steps based on prior steps (e.g. "Desktop/Folder/File") instead of relative pronouns like "in it" or "there".`;
 
 // ================================================================
 // RATE LIMITER

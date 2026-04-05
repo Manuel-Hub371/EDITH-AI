@@ -1,8 +1,8 @@
 const { exec } = require('child_process');
-const Sentry = require('@sentry/node');
 const path = require('path');
 const fs = require('fs');
 const Tracer = require('./tracer');
+const Sentry = require('@sentry/node');
 
 /**
  * Executor Service (v1.0)
@@ -21,7 +21,7 @@ class ExecutorService {
     async executeCMD(command) {
         return new Promise((resolve, reject) => {
             console.log(`[Executor] CMD: ${command}`);
-            Tracer.executor(`Tool: CMD | Executing: ${command}`);
+            Tracer.executor(command);
             exec(command, (error, stdout, stderr) => {
                 this.logResult('CMD', command, !error);
                 if (error) {
@@ -29,7 +29,7 @@ class ExecutorService {
                     Tracer.executor(`FAILED: ${stderr || error.message}`);
                     return reject(new Error(stderr || error.message));
                 }
-                Tracer.executor(`SUCCESS: ${stdout ? stdout.trim().substring(0, 150) : "No output"}`);
+                Tracer.executor('SUCCESS');
                 resolve(stdout.trim());
             });
         });
@@ -42,7 +42,7 @@ class ExecutorService {
         const psCommand = `powershell -NoProfile -ExecutionPolicy Bypass -Command "${command.replace(/"/g, '\"')}"`;
         return new Promise((resolve, reject) => {
             console.log(`[Executor] PS: ${command}`);
-            Tracer.executor(`Tool: PowerShell | Executing: ${command.substring(0, 100)}...`);
+            Tracer.executor(command);
             exec(psCommand, (error, stdout, stderr) => {
                 this.logResult('PS', command, !error);
                 if (error) {
@@ -50,7 +50,7 @@ class ExecutorService {
                     Tracer.executor(`FAILED: ${stderr || error.message}`);
                     return reject(new Error(stderr || error.message));
                 }
-                Tracer.executor(`SUCCESS: ${stdout ? stdout.trim().substring(0, 150) : "No output"}`);
+                Tracer.executor('SUCCESS');
                 resolve(stdout.trim());
             });
         });

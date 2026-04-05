@@ -138,6 +138,9 @@ class Resolver {
             throw new Error(`Target "${query}" could not be resolved in memory or index.`);
         }
 
+        const finalPath = resolved.bestMatch?.path || query;
+        Tracer.resolver(`${target} → ${finalPath}`);
+
         return resolved;
     }
 }
