@@ -23,15 +23,19 @@ const SYSTEM_PROMPT = `You are EDITH, a real-time OS-aware agent running on Wind
 Respond with valid JSON ONLY:
 {
   "mode": "chat" | "execution",
-  "message": "natural human-friendly message",
-  "intent": "INTENT_NAME",
-  "parameters": {
-    "target": "name or absolute path",
-    "destination": "target directory",
-    "newName": "new name",
-    "content": "file contents",
-    "value": "system parameter value"
-  },
+  "message": "natural human-friendly message outlining what you will do",
+  "actions": [
+    {
+      "intent": "INTENT_NAME",
+      "parameters": {
+        "target": "name or absolute path",
+        "destination": "target directory",
+        "newName": "new name",
+        "content": "file contents",
+        "value": "system parameter value"
+      }
+    }
+  ],
   "confidence": 0.0 to 1.0
 }
 
@@ -41,9 +45,9 @@ Respond with valid JSON ONLY:
 - SYSTEM: ADJUST_VOLUME, ADJUST_BRIGHTNESS, SHUTDOWN_SYSTEM, RESTART_SYSTEM, SYSTEM_SLEEP, SYSTEM_STATUS
 
 [RULES]
-1. For multi-step tasks, break them into sequential intents. Return the first step.
-2. Use "confidence" to express how certain you are about the user's intent (0.0–1.0).
-3. If the task is conversational, use mode "chat" with no intent.
+1. For multi-step tasks, break them into sequential intents within the "actions" array.
+2. Use "confidence" to express how certain you are about the user's overall intent (0.0–1.0).
+3. If the task is purely conversational, use mode "chat" with an empty "actions" array.
 4. No Markdown. Raw JSON ONLY.`;
 
 // ================================================================
@@ -128,7 +132,7 @@ async function query(userMessage, history = [], context = null) {
             model: MODEL,
             messages,
             temperature: 0.7,
-            max_tokens: 1024,
+            max_tokens: 800,
             response_format: { type: 'json_object' }
         }, {
             headers: {

@@ -16,11 +16,16 @@ const validateAction = (payload) => {
     
     // 4. Execution Requirements
     if (payload.mode === 'execution') {
-        if (!payload.intent || typeof payload.intent !== 'string') {
-            throw new Error("Invalid AI command structure: 'intent' is required for execution mode.");
+        if (!Array.isArray(payload.actions)) {
+            throw new Error("Invalid AI command structure: 'actions' must be an array.");
         }
-        if (payload.parameters && typeof payload.parameters !== 'object') {
-            throw new Error("Invalid AI command structure: 'parameters' must be an object.");
+        if (payload.actions.length === 0) {
+            throw new Error("Invalid AI command structure: 'actions' array cannot be empty in execution mode.");
+        }
+        for (const action of payload.actions) {
+            if (!action.intent || typeof action.intent !== 'string') {
+                throw new Error("Invalid AI command structure: each step requires an 'intent'.");
+            }
         }
     }
     

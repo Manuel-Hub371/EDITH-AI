@@ -119,10 +119,19 @@ function normalizeResponse(rawText, source) {
             if (content) parsed = JSON.parse(content);
         }
 
+        // Normalize legacy single-intent into actions array
+        let actions = parsed.actions || [];
+        if (actions.length === 0 && parsed.intent) {
+            actions = [{
+                intent: parsed.intent,
+                parameters: parsed.parameters || {}
+            }];
+        }
+
         return {
             mode: parsed.mode || 'chat',
-            intent: parsed.intent || null,
-            parameters: parsed.parameters || {},
+            intent: actions.length > 0 ? actions[0].intent : null, // legacy shorthand
+            actions: actions,
             confidence: parsed.confidence || (source === 'openrouter' ? 0.9 : 0.8),
             message: parsed.message || parsed.response || '',
             _source: source
@@ -132,7 +141,7 @@ function normalizeResponse(rawText, source) {
         return {
             mode: 'chat',
             intent: null,
-            parameters: {},
+            actions: [],
             confidence: 0.5,
             message: rawText || 'I had trouble processing that. Can you rephrase?',
             _source: source

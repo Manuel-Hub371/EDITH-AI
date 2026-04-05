@@ -146,55 +146,91 @@ app.post('/api/execute', async (req, res) => {
     if (!action) return res.status(400).json({ status: "error", message: "No action provided." });
 
     try {
-        // 1. Schema Validation
+        // 1. Schema Validation (now checks for action.actions array from Phase 4 Gateway)
         validateAction(action);
         
-        // 2. Execution Pipeline (Sandbox moved to dispatcher)
-        const target = action.parameters ? (action.parameters.path || action.parameters.app || action.parameters.target) : '';
-        const result = await dispatcher.dispatch(action);
+        let executedSteps = [];
+        let failedSteps = [];
+        let finalMessage = "Actions executed successfully.";
 
-        // --- PHASE 2: Check for Confirmation/Choice ---
-        if (result && result.status === 'NEED_CONFIRMATION') {
-            const actionId = Math.random().toString(36).substring(7);
-            action.parameters = { ...action.parameters, path: result.target || target }; // Update parsed path
-            pendingActions.set(actionId, { action, sessionId });
+        // 2. Sequential Execution Pipeline
+        for (let i = 0; i < action.actions.length; i++) {
+            const step = action.actions[i];
+            const target = step.parameters ? (step.parameters.path || step.parameters.app || step.parameters.target) : '';
             
-            return res.json({ 
-                status: "NEED_CONFIRMATION", 
-                message: `Safety Sandbox: High-risk action '${action.intent}' requires confirmation. Proceed?`,
-                actionId,
-                intent: action.intent
-            });
-        }
+            // Build the individual action object for the dispatcher to maintain Phase 1-3 compatibility
+            const stepAction = {
+                intent: step.intent,
+                parameters: step.parameters || {}
+            };
 
-        if (result && result.status === 'NEED_CHOICE') {
-            const choiceId = Math.random().toString(36).substring(7);
-            pendingChoices.set(choiceId, { query: result.query, alternatives: result.alternatives, action });
-            return res.json({
-                status: "NEED_CHOICE",
-                message: "I found multiple matches. Which one did you mean?",
-                choices: result.alternatives,
-                choiceId
-            });
-        }
+            const result = await dispatcher.dispatch(stepAction);
 
-        if (action.parameters && action.parameters.path) contextMemory.last_path = action.parameters.path;
-        if (target) {
-            contextMemory.last_app = target;
-            // Phase 2: Record successful command in background
-            const queryName = action.parameters ? (action.parameters.app || action.parameters.path || target) : target;
-            memoryService.recordCommand(queryName, action.intent, target, true);
+            // --- PHASE 2/3: Check for Confirmation/Choice ---
+            if (result && result.status === 'NEED_CONFIRMATION') {
+                const actionId = Math.random().toString(36).substring(7);
+                stepAction.parameters = { ...stepAction.parameters, path: result.target || target }; // Update parsed path
+                
+                // Suspend the multi-step queue, wait for confirmation
+                pendingActions.set(actionId, { action: stepAction, sessionId, remainingSteps: action.actions.slice(i + 1) });
+                
+                return res.json({ 
+                    status: "NEED_CONFIRMATION", 
+                    message: `Safety Sandbox: High-risk action '${step.intent}' requires confirmation.`,
+                    actionId,
+                    intent: step.intent,
+                    executedSteps,
+                    failedSteps
+                });
+            }
+
+            if (result && result.status === 'NEED_CHOICE') {
+                const choiceId = Math.random().toString(36).substring(7);
+                pendingChoices.set(choiceId, { query: result.query, alternatives: result.alternatives, action: stepAction, remainingSteps: action.actions.slice(i + 1) });
+                return res.json({
+                    status: "NEED_CHOICE",
+                    message: "I found multiple matches. Which one did you mean?",
+                    choices: result.alternatives,
+                    choiceId,
+                    executedSteps,
+                    failedSteps
+                });
+            }
+
+            if (stepAction.parameters && stepAction.parameters.path) contextMemory.last_path = stepAction.parameters.path;
+            if (target) {
+                contextMemory.last_app = target;
+                // Record successful command in memory
+                const queryName = stepAction.parameters ? (stepAction.parameters.app || stepAction.parameters.path || target) : target;
+                memoryService.recordCommand(queryName, stepAction.intent, target, true);
+            }
+            
+            logAction(stepAction.intent, target, result.success ? 'SUCCESS' : 'FAILURE');
+
+            if (result.success !== false) {
+                executedSteps.push({ intent: stepAction.intent, target, message: result.message });
+            } else {
+                failedSteps.push({ intent: stepAction.intent, target, error: result.message });
+                finalMessage = `Execution halted: ${result.message}`;
+                break; // Halt the sequence on failure
+            }
         }
         
-        logAction(action.intent, target, result.success ? 'SUCCESS' : 'FAILURE');
+        if (failedSteps.length === 0 && executedSteps.length > 0) {
+            finalMessage = executedSteps.length > 1 ? `Successfully executed ${executedSteps.length} tasks.` : executedSteps[0].message;
+        } else if (executedSteps.length === 0 && failedSteps.length === 0) {
+           finalMessage = "No actionable steps found.";
+        }
+
         res.json({ 
-            success: result.success !== false,
-            message: result.message || "Action executed successfully.",
-            data: result.data || undefined
+            success: failedSteps.length === 0,
+            message: finalMessage,
+            executedSteps,
+            failedSteps
         });
 
     } catch (err) {
-        logAction(action?.intent || 'UNKNOWN', '', `FAILURE: ${err.message}`);
+        logAction(action?.actions?.[0]?.intent || 'UNKNOWN', '', `FAILURE: ${err.message}`);
         res.json({ success: false, message: `Issue: ${err.message}` });
     }
 });
@@ -206,7 +242,7 @@ app.post('/api/execute/choice', async (req, res) => {
     const { choiceId, selectedPath, alias } = req.body;
     if (!pendingChoices.has(choiceId)) return res.status(404).json({ status: "error", message: "Choice session expired." });
 
-    const { query, action } = pendingChoices.get(choiceId);
+    const { query, action, remainingSteps = [] } = pendingChoices.get(choiceId);
     pendingChoices.delete(choiceId);
 
     try {
@@ -224,7 +260,79 @@ app.post('/api/execute/choice', async (req, res) => {
         // 3. Record in memory
         memoryService.recordCommand(query, action.intent, selectedPath, true);
 
-        res.json({ success: true, message: result?.message || "Action completed with choice.", data: result?.data || undefined });
+        let executedSteps = [{ intent: action.intent, message: result?.message || "Action completed with choice." }];
+        let failedSteps = [];
+        let finalMessage = result?.message || "Action completed with choice.";
+
+        if (result?.success === false) {
+           failedSteps.push({ intent: action.intent, error: result.message });
+           return res.json({ success: false, message: `Execution failed: ${result.message}`, executedSteps, failedSteps });
+        }
+
+        // 4. Resume remaining steps
+        for (let i = 0; i < remainingSteps.length; i++) {
+            const step = remainingSteps[i];
+            const target = step.parameters ? (step.parameters.path || step.parameters.app || step.parameters.target) : '';
+            
+            const stepAction = { intent: step.intent, parameters: step.parameters || {} };
+            const stepResult = await dispatcher.dispatch(stepAction);
+
+            if (stepResult && stepResult.status === 'NEED_CONFIRMATION') {
+                const newActionId = Math.random().toString(36).substring(7);
+                stepAction.parameters = { ...stepAction.parameters, path: stepResult.target || target };
+                pendingActions.set(newActionId, { action: stepAction, sessionId: 'default', remainingSteps: remainingSteps.slice(i + 1) });
+                
+                return res.json({ 
+                    status: "NEED_CONFIRMATION", 
+                    message: `Safety Sandbox: High-risk action '${step.intent}' requires confirmation.`,
+                    actionId: newActionId,
+                    intent: step.intent,
+                    executedSteps,
+                    failedSteps
+                });
+            }
+
+            if (stepResult && stepResult.status === 'NEED_CHOICE') {
+                const newChoiceId = Math.random().toString(36).substring(7);
+                pendingChoices.set(newChoiceId, { query: stepResult.query, alternatives: stepResult.alternatives, action: stepAction, remainingSteps: remainingSteps.slice(i + 1) });
+                return res.json({
+                    status: "NEED_CHOICE",
+                    message: "I found multiple matches. Which one did you mean?",
+                    choices: stepResult.alternatives,
+                    choiceId: newChoiceId,
+                    executedSteps,
+                    failedSteps
+                });
+            }
+
+            if (stepAction.parameters && stepAction.parameters.path) contextMemory.last_path = stepAction.parameters.path;
+            if (target) {
+                contextMemory.last_app = target;
+                const queryName = stepAction.parameters ? (stepAction.parameters.app || stepAction.parameters.path || target) : target;
+                memoryService.recordCommand(queryName, stepAction.intent, target, true);
+            }
+            logAction(stepAction.intent, target, stepResult.success ? 'SUCCESS' : 'FAILURE');
+
+            if (stepResult.success !== false) {
+                executedSteps.push({ intent: stepAction.intent, target, message: stepResult.message });
+            } else {
+                failedSteps.push({ intent: stepAction.intent, target, error: stepResult.message });
+                finalMessage = `Execution halted on subsequent step: ${stepResult.message}`;
+                break;
+            }
+        }
+
+        if (failedSteps.length === 0 && remainingSteps.length > 0) {
+            finalMessage = `Action choice applied and ${remainingSteps.length} remaining steps completed successfully.`;
+        }
+
+        res.json({ 
+            success: failedSteps.length === 0, 
+            message: finalMessage, 
+            data: result?.data || undefined,
+            executedSteps,
+            failedSteps
+        });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -252,16 +360,91 @@ app.post('/api/execute/confirm', async (req, res) => {
     const { actionId, confirmed } = req.body;
     if (!pendingActions.has(actionId)) return res.status(404).json({ status: "error", message: "Action expired or not found." });
 
-    const { action, sessionId } = pendingActions.get(actionId);
+    const { action, sessionId, remainingSteps = [] } = pendingActions.get(actionId);
     pendingActions.delete(actionId);
 
     if (!confirmed) {
-        return res.json({ success: false, message: "Action aborted by user." });
+        return res.json({ success: false, message: "Action aborted by user. Remaining multi-step sequence canceled." });
     }
 
     try {
-        const result = await dispatcher.dispatch(action, true); // Dispatch with confirmed=true
-        res.json({ success: result?.success !== false, message: result?.message || "Confirmed action completed.", data: result?.data || undefined });
+        // Execute the confirmed action
+        const result = await dispatcher.dispatch(action, true); 
+        
+        let executedSteps = [{ intent: action.intent, message: result?.message || "Confirmed action completed." }];
+        let failedSteps = [];
+        let finalMessage = result?.message || "Confirmed action completed.";
+
+        // If it failed, abort remaining
+        if (result?.success === false) {
+           failedSteps.push({ intent: action.intent, error: result.message });
+           return res.json({ success: false, message: `Execution failed: ${result.message}`, executedSteps, failedSteps });
+        }
+
+        // Resume remaining steps
+        for (let i = 0; i < remainingSteps.length; i++) {
+            const step = remainingSteps[i];
+            const target = step.parameters ? (step.parameters.path || step.parameters.app || step.parameters.target) : '';
+            
+            const stepAction = { intent: step.intent, parameters: step.parameters || {} };
+            const stepResult = await dispatcher.dispatch(stepAction);
+
+            if (stepResult && stepResult.status === 'NEED_CONFIRMATION') {
+                const newActionId = Math.random().toString(36).substring(7);
+                stepAction.parameters = { ...stepAction.parameters, path: stepResult.target || target };
+                pendingActions.set(newActionId, { action: stepAction, sessionId, remainingSteps: remainingSteps.slice(i + 1) });
+                
+                return res.json({ 
+                    status: "NEED_CONFIRMATION", 
+                    message: `Safety Sandbox: High-risk action '${step.intent}' requires confirmation.`,
+                    actionId: newActionId,
+                    intent: step.intent,
+                    executedSteps,
+                    failedSteps
+                });
+            }
+
+            if (stepResult && stepResult.status === 'NEED_CHOICE') {
+                const choiceId = Math.random().toString(36).substring(7);
+                pendingChoices.set(choiceId, { query: stepResult.query, alternatives: stepResult.alternatives, action: stepAction, remainingSteps: remainingSteps.slice(i + 1) });
+                return res.json({
+                    status: "NEED_CHOICE",
+                    message: "I found multiple matches. Which one did you mean?",
+                    choices: stepResult.alternatives,
+                    choiceId,
+                    executedSteps,
+                    failedSteps
+                });
+            }
+
+            if (stepAction.parameters && stepAction.parameters.path) contextMemory.last_path = stepAction.parameters.path;
+            if (target) {
+                contextMemory.last_app = target;
+                const queryName = stepAction.parameters ? (stepAction.parameters.app || stepAction.parameters.path || target) : target;
+                memoryService.recordCommand(queryName, stepAction.intent, target, true);
+            }
+            logAction(stepAction.intent, target, stepResult.success ? 'SUCCESS' : 'FAILURE');
+
+            if (stepResult.success !== false) {
+                executedSteps.push({ intent: stepAction.intent, target, message: stepResult.message });
+            } else {
+                failedSteps.push({ intent: stepAction.intent, target, error: stepResult.message });
+                finalMessage = `Execution halted on subsequent step: ${stepResult.message}`;
+                break;
+            }
+        }
+
+        if (failedSteps.length === 0 && remainingSteps.length > 0) {
+            finalMessage = `Confirmed action and ${remainingSteps.length} remaining steps completed successfully.`;
+        }
+
+        res.json({ 
+            success: failedSteps.length === 0, 
+            message: finalMessage, 
+            data: result?.data || undefined,
+            executedSteps,
+            failedSteps
+        });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }

@@ -177,8 +177,8 @@ const ChatApp = {
                         });
                         let execData = await execRes.json();
 
-                        // Auto-confirm
-                        if (execData.status === 'NEED_CONFIRMATION' && execData.actionId) {
+                        // Auto-confirm loop for multi-step tasks
+                        while (execData.status === 'NEED_CONFIRMATION' && execData.actionId) {
                             const confirmRes = await fetch(`${API_BASE}/api/execute/confirm`, {
                                 method: 'POST',
                                 headers: API_CONFIG.headers,
@@ -192,7 +192,17 @@ const ChatApp = {
                         if (execData.status === 'NEED_CHOICE') {
                             this.updateBubble(aiBubble, execData.message || 'Multiple matches found. Please clarify.');
                         } else {
-                            this.updateBubble(aiBubble, execData.message || aiText || 'Done.');
+                            let displayMessage = execData.message || aiText || 'Done.';
+                            
+                            // Rich formatting for multi-step results
+                            if (execData.executedSteps && execData.executedSteps.length > 0) {
+                                displayMessage += `<br><br><small style="color: #4ade80;">Executed ${execData.executedSteps.length} steps.</small>`;
+                            }
+                            if (execData.failedSteps && execData.failedSteps.length > 0) {
+                                displayMessage += `<br><small style="color: #f87171;">Failed ${execData.failedSteps.length} steps.</small>`;
+                            }
+
+                            this.updateBubble(aiBubble, displayMessage);
                         }
                     } catch (execErr) {
                         execTyping.remove();
