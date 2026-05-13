@@ -154,10 +154,11 @@
     
     // Display the main AI message bubble
     var aiMsg = result.ai_response ? result.ai_response.content : "Thinking...";
+    var renderedContent = typeof marked !== 'undefined' ? marked.parse(aiMsg) : esc(aiMsg);
     
     row.innerHTML = '<div class="msg-avatar">' + robotSVG(28) + '</div>'
       + '<div class="msg-wrap">'
-      + '<div class="msg-bubble ai-bubble">' + esc(aiMsg) + '</div>'
+      + '<div class="msg-bubble ai-bubble">' + renderedContent + '</div>'
       + (showOrchestration ? html : '') // Only show orchestration for complex tasks
       + '<span class="msg-time">' + getTime() + '</span>'
       + '</div>';

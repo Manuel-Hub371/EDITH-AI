@@ -10,7 +10,8 @@ INTENT_REGISTRY = {
         "deep_research", "troubleshooting", "recommendation", "analytical_reasoning"
     ],
     "actionable": [
-        "file_automation", "app_automation", "document_generation", 
+        "file_automation", "create_file", "create_folder", "delete_file", "delete_folder", "rename",
+        "app_automation", "document_generation", 
         "code_generation", "code_execution", "scheduling", "api_operation", 
         "system_control", "workflow_execution", "agent_invocation"
     ]

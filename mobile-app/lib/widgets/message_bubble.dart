@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import '../models/message.dart';
 import '../theme/app_theme.dart';
 import 'robot_logo.dart';
@@ -94,16 +95,39 @@ class _BubbleBody extends StatelessWidget {
                 horizontal: 14,
                 vertical: 10,
               ),
-              child: Text(
-                message.content,
-                style: TextStyle(
-                  fontSize: 15,
-                  height: 1.5,
-                  color: isUser
-                      ? AppColors.userBubbleText
-                      : AppColors.aiBubbleText,
-                ),
-              ),
+              child: isUser
+                  ? Text(
+                      message.content,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        height: 1.5,
+                        color: AppColors.userBubbleText,
+                      ),
+                    )
+                  : MarkdownBody(
+                      data: message.content,
+                      styleSheet: MarkdownStyleSheet(
+                        p: const TextStyle(
+                          fontSize: 15,
+                          height: 1.5,
+                          color: AppColors.aiBubbleText,
+                        ),
+                        h1: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.blue,
+                        ),
+                        h2: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.blue,
+                        ),
+                        listBullet: const TextStyle(
+                          fontSize: 15,
+                          color: AppColors.aiBubbleText,
+                        ),
+                      ),
+                    ),
             ),
     );
   }

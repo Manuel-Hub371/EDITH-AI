@@ -23,7 +23,8 @@ class ResponseGenerator:
         self,
         preprocessed_data: PreprocessedResponse,
         state: Optional[ConversationState] = None,
-        research_results: Optional[str] = None
+        research_results: Optional[str] = None,
+        execution_results: Optional[dict] = None
     ) -> AIResponse:
         intent_info = preprocessed_data.intent
 
@@ -50,6 +51,8 @@ class ResponseGenerator:
             if ctx: context_block = "\n".join(ctx)
 
         research_block = research_results if research_results else "No research results available for this turn."
+        
+        execution_block = f"Action results: {execution_results}" if execution_results else "No actions performed this turn."
 
         prompt = f"""
 You are EDITH, an advanced AI assistant designed for natural, intelligent, and context-aware conversation.
@@ -65,6 +68,7 @@ You maintain continuity using:
 - conversation history
 - active context
 - retrieved research
+- execution results
 - current user intent
 
 ========================================
@@ -83,6 +87,11 @@ RESEARCH FINDINGS
 {research_block}
 
 ========================================
+EXECUTION METADATA
+========================================
+{execution_block}
+
+========================================
 CURRENT USER MESSAGE
 ========================================
 "{preprocessed_data.cleaned_input}"
@@ -90,6 +99,11 @@ CURRENT USER MESSAGE
 ========================================
 CORE BEHAVIOR RULES
 ========================================
+
+0. Confirm Actions
+- If an action was performed (see EXECUTION METADATA), confirm it naturally.
+- If it failed, explain why briefly.
+- Do not narrate the tool usage, just the outcome.
 
 1. Maintain conversational continuity
 - Use prior conversation naturally

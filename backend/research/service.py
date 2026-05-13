@@ -4,6 +4,7 @@ from typing import List, Optional
 from research.planner import planner
 from research.search_tools import search_provider
 from research.reranker import reranker
+from research.synthesizer import research_synthesizer
 from research.models import ResearchPlan, SearchResult
 from conversational_context.models import ConversationState
 
@@ -32,18 +33,17 @@ class ResearchService:
             for results in results_list:
                 all_results.extend(results)
             
-        # 3. Rerank results (limit to top 20 for performance)
+        # 3. Rerank results
         logger.info(f"Reranking top 20 of {len(all_results)} results for query: {user_input}")
         top_results = reranker.rerank(user_input, all_results[:20], top_n=5)
         
-        # 4. Format for synthesis
+        # 4. Synthesize into high-quality briefing
         if not top_results:
             return "No relevant information found during research."
             
-        formatted_results = []
-        for i, res in enumerate(top_results):
-            formatted_results.append(f"[{i+1}] {res.title}\nURL: {res.url}\nSnippet: {res.snippet}\n")
-            
-        return "\n".join(formatted_results)
+        logger.info("Synthesizing research results into structured report...")
+        report = await research_synthesizer.synthesize(user_input, top_results, state)
+        
+        return report
 
 research_service = ResearchService()

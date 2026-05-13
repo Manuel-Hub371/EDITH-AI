@@ -11,6 +11,7 @@ from intent_detection.service import intent_service
 from response.service import response_service
 from response.models import AIResponse
 from research.service import research_service
+from filesystem.service import filesystem_service
 
 DetectorFactory.seed = 0
 logger = logging.getLogger(__name__)
@@ -69,6 +70,8 @@ async def preprocess_message(user_input: str, session_id: str, background_tasks:
             intent_service.detect_intent(cleaned),
             context_manager.get_or_create_state(session_id)
         )
+        
+        logger.info(f"Intent detected: {intent_data.json()}")
 
         # 2. Generate response using the loaded state (contains full history)
         base_response = PreprocessedResponse(
@@ -88,6 +91,15 @@ async def preprocess_message(user_input: str, session_id: str, background_tasks:
                 base_response, 
                 state=current_state, 
                 research_results=research_findings
+            )
+        elif "filesystem_access" in intent_data.capabilities_required or "document_generation" in intent_data.capabilities_required:
+            # 2c. Execute Filesystem Operation
+            fs_results = await filesystem_service.execute_operation(intent_data)
+            # 2d. Synthesize response with execution metadata
+            ai_response = await response_service.generate_final_response(
+                base_response,
+                state=current_state,
+                execution_results=fs_results
             )
         else:
             ai_response = AIResponse(

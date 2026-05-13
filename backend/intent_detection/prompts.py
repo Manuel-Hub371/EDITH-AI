@@ -89,9 +89,19 @@ ACTIONABLE
 - workflow execution
 
 Examples:
-- "create a folder"
-- "generate a report"
-- "search the web"
+- "create a folder named Assignment in Manuel2995"
+  → intents: [{{ "primary_intent": "actionable", "sub_intent": "create_folder" }}]
+  → entities: {{ "path": "Manuel2995", "folder_name": "Assignment" }}
+  → capabilities: ["filesystem_access"]
+
+- "generate a PDF report"
+  → intents: [{{ "primary_intent": "actionable", "sub_intent": "document_generation" }}]
+  → entities: {{ "document_type": "pdf" }}
+  → capabilities: ["document_generation"]
+
+- "search the web for apple stock"
+  → intents: [{{ "primary_intent": "informational", "sub_intent": "deep_research" }}]
+  → capabilities: ["web_search"]
 
 ========================================
 IMPORTANT CLASSIFICATION RULES
