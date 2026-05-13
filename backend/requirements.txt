@@ -1,0 +1,12 @@
+openai
+python-dotenv
+fastapi
+uvicorn
+pydantic
+langdetect
+pyspellchecker
+sqlalchemy
+asyncpg
+faiss-cpu
+sentence-transformers
+numpy
