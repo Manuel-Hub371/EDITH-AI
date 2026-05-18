@@ -15,7 +15,23 @@ class LocalReranker:
             from sentence_transformers import CrossEncoder
             logger.info("Loading Local Reranker (cross-encoder/ms-marco-MiniLM-L-6-v2)...")
             cache_dir = os.path.join(os.getcwd(), "model_cache")
-            self._model = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2', cache_folder=cache_dir)
+            
+            try:
+                # Attempt 1: Normal load
+                self._model = CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2', cache_folder=cache_dir)
+            except Exception as e:
+                logger.warning(f"Failed to load reranker from Hub: {e}. Attempting local-only load...")
+                try:
+                    # Attempt 2: Local only
+                    self._model = CrossEncoder(
+                        'cross-encoder/ms-marco-MiniLM-L-6-v2', 
+                        cache_folder=cache_dir,
+                        local_files_only=True
+                    )
+                except Exception as e2:
+                    logger.error(f"Critical failure: Could not load reranker even locally. {e2}")
+                    raise e2
+            
             logger.info("Local Reranker loaded.")
         return self._model
 

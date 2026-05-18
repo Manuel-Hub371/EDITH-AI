@@ -33,9 +33,12 @@ async def startup_event():
 
     # 2. Preloading models for faster response
     logger.info("Preloading models...")
-    _ = memory_service.encoder
-    _ = reranker.model
-    logger.info("Models preloaded successfully.")
+    try:
+        _ = memory_service.encoder
+        _ = reranker.model
+        logger.info("Models preloaded successfully.")
+    except Exception as e:
+        logger.error(f"Failed to preload some models: {e}. System will try to reload on demand.")
 
 app.add_middleware(
     CORSMiddleware,

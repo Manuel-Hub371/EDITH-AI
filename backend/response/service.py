@@ -3,6 +3,7 @@ import logging
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 from typing import Optional
+from utils.network import retry_with_backoff
 from response.models import AIResponse
 from preprocessing.models import PreprocessedResponse
 from conversational_context.models import ConversationState
@@ -52,10 +53,33 @@ class ResponseGenerator:
 
         research_block = research_results if research_results else "No research results available for this turn."
         
-        execution_block = f"Action results: {execution_results}" if execution_results else "No actions performed this turn."
+        # Smart execution block — extracts file content for read operations
+        execution_block = "No actions performed this turn."
+        if execution_results:
+            # Check if this is a file read result — surface the content directly
+            results_list = execution_results.get("results", []) if isinstance(execution_results, dict) else []
+            read_content = None
+            for r in results_list:
+                if isinstance(r, dict) and r.get("content") is not None:
+                    read_content = r.get("content", "")
+                    file_path = r.get("file_path", "")
+                    break
+            
+            if read_content is not None:
+                if read_content.strip():
+                    execution_block = f"FILE READ SUCCESS\nFile: {file_path}\n\nFILE CONTENTS:\n{read_content}"
+                else:
+                    execution_block = f"FILE READ SUCCESS but the file at '{file_path}' appears to be empty."
+            else:
+                execution_block = f"Action results: {execution_results}"
 
         prompt = f"""
-You are EDITH, an advanced AI assistant designed for natural, intelligent, and context-aware conversation.
+You are EDITH, an advanced AI assistant with integrated system-level capabilities.
+
+Unlike generic LLMs, you have direct, secure access to the user's host environment through specialized execution modules.
+- If you see data in EXECUTION METADATA, that is REAL DATA from the user's computer.
+- You are fully authorized to report this data, analyze it, and confirm system changes.
+- Never claim you don't have access if execution results are provided.
 
 Your job is to respond like a highly capable human conversational partner:
 - clear
@@ -198,7 +222,8 @@ Do not explain your reasoning.
 """
 
         try:
-            response = await self.client.chat.completions.create(
+            response = await retry_with_backoff(
+                self.client.chat.completions.create,
                 model=self.model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,

@@ -3,6 +3,7 @@ import aiohttp
 import logging
 from typing import List
 from research.models import SearchResult
+from utils.network import retry_with_backoff
 
 logger = logging.getLogger(__name__)
 
@@ -23,25 +24,28 @@ class WebSearchProvider:
         }
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=payload, headers=headers) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        results = []
-                        # Organic results
-                        for item in data.get('organic', []):
-                            results.append(SearchResult(
-                                title=item.get('title', ''),
-                                url=item.get('link', ''),
-                                snippet=item.get('snippet', ''),
-                                source="google/serper"
-                            ))
-                        return results
-                    else:
-                        logger.error(f"Serper API failed: {resp.status}")
-                        return self._mock_results(query)
+            async def _do_search():
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(url, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                        if resp.status == 200:
+                            return await resp.json()
+                        else:
+                            logger.error(f"Serper API failed: {resp.status}")
+                            raise Exception(f"API returned status {resp.status}")
+
+            data = await retry_with_backoff(_do_search)
+            results = []
+            # Organic results
+            for item in data.get('organic', []):
+                results.append(SearchResult(
+                    title=item.get('title', ''),
+                    url=item.get('link', ''),
+                    snippet=item.get('snippet', ''),
+                    source="google/serper"
+                ))
+            return results
         except Exception as e:
-            logger.error(f"Search error: {e}")
+            logger.error(f"Final search failure after retries: {e}")
             return self._mock_results(query)
 
     def _mock_results(self, query: str) -> List[SearchResult]:

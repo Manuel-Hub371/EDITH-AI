@@ -18,14 +18,15 @@ class LLMIntentService:
         )
         self.model = os.getenv("NVIDIA_MODEL", "meta/llama-3.1-70b-instruct")
 
-    async def detect_intent(self, text: str) -> IntentDetectionResponse:
+    async def detect_intent(self, text: str, history: str = "", state_context: str = "") -> IntentDetectionResponse:
         """
         Truly asynchronous inference for production-grade intent detection.
+        Now includes conversation history for context-aware routing.
         """
         if not text:
             return self._get_empty_response()
 
-        prompt = build_intent_prompt(text)
+        prompt = build_intent_prompt(text, history=history, state_context=state_context)
 
         try:
             response = await self.client.chat.completions.create(

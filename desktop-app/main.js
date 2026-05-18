@@ -1,5 +1,30 @@
 const { app, BrowserWindow, Menu, screen } = require('electron');
 const path = require('path');
+const { spawn, exec } = require('child_process');
+
+let backendProcess = null;
+
+function startBackend() {
+  const backendPath = 'C:\\Users\\USER\\Desktop\\Manuel2995\\PROJECTS\\EDITH\\backend';
+  
+  backendProcess = spawn('python', ['main.py'], {
+    cwd: backendPath,
+    shell: true,
+    detached: false
+  });
+
+  backendProcess.stdout.on('data', (data) => {
+    console.log(`[Backend]: ${data}`);
+  });
+
+  backendProcess.stderr.on('data', (data) => {
+    console.error(`[Backend ERROR]: ${data}`);
+  });
+
+  backendProcess.on('close', (code) => {
+    console.log(`Backend process exited with code ${code}`);
+  });
+}
 
 // Remove the native menu bar (File, Edit, View, Window, Help)
 Menu.setApplicationMenu(null);
@@ -61,6 +86,7 @@ function createMainWindow() {
 }
 
 app.whenReady().then(() => {
+  startBackend();
   createSplashWindow();
 
   setTimeout(() => {
@@ -77,5 +103,12 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+app.on('before-quit', () => {
+  if (backendProcess && backendProcess.pid) {
+    // Force kill the python process tree on Windows
+    exec(`taskkill /pid ${backendProcess.pid} /t /f`);
   }
 });

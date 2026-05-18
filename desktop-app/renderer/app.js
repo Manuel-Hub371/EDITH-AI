@@ -149,8 +149,8 @@
     html += '</div>';
     
     // Conditionally show Orchestration Layer
-    // Hide it for direct responses to keep the UI clean
-    var showOrchestration = strategy.execution_mode !== 'direct_response';
+    // Hide it permanently as requested by the user
+    var showOrchestration = false;
     
     // Display the main AI message bubble
     var aiMsg = result.ai_response ? result.ai_response.content : "Thinking...";

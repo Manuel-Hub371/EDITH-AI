@@ -23,10 +23,25 @@ class FAISSMemoryService:
             cache_dir = os.path.join(os.getcwd(), "model_cache")
             os.makedirs(cache_dir, exist_ok=True)
             
-            self._encoder = SentenceTransformer(
-                'all-MiniLM-L6-v2', 
-                cache_folder=cache_dir
-            )
+            try:
+                # Attempt 1: Normal load (checks for updates)
+                self._encoder = SentenceTransformer(
+                    'all-MiniLM-L6-v2', 
+                    cache_folder=cache_dir
+                )
+            except Exception as e:
+                logger.warning(f"Failed to load model from Hub: {e}. Attempting local-only load...")
+                try:
+                    # Attempt 2: Local only (bypasses network checks)
+                    self._encoder = SentenceTransformer(
+                        'all-MiniLM-L6-v2', 
+                        cache_folder=cache_dir,
+                        local_files_only=True
+                    )
+                except Exception as e2:
+                    logger.error(f"Critical failure: Could not load model even locally. {e2}")
+                    raise e2
+            
             logger.info("SentenceTransformer model loaded successfully.")
         return self._encoder
 
