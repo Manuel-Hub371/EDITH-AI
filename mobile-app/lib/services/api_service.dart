@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 /// EDITH Minimal Intent Service Client
 class ApiService {
-  static const String _baseUrl = 'http://localhost:8000';
+  static const String _baseUrl = 'http://localhost:8001';
 
   /// Sends a message to the backend and returns the flattened intent data.
   Future<Map<String, dynamic>> getIntent(String message) async {

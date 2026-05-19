@@ -1,12 +1,12 @@
 /* ============================================================
    EDITH — Minimal Intent API Service
-   Connects to FastAPI at http://localhost:8000
+   Connects to FastAPI at http://localhost:8001
    ============================================================ */
 
 const EDITH_API = (function () {
   'use strict';
 
-  var BASE_URL = 'http://localhost:8000';
+  var BASE_URL = 'http://localhost:8001';
 
   // ── REST helper ──────────────────────────────────────────
   async function request(method, path, body) {

@@ -1,93 +1,114 @@
+import os
 import logging
-import asyncio
-import json
-from typing import List, Optional
+from typing import Optional
+from dotenv import load_dotenv
 from conversational_context.models import ConversationState
 
-# New Analytical Components
-from research.domain_classifier import domain_classifier
-from research.retrieval_router import retrieval_router
-from research.narrative_planner import narrative_planner
-from research.human_impact_analyzer import human_impact_analyzer
-from research.evidence_clusterer import evidence_clusterer
-from research.concept_extractor import concept_extractor
-from research.insight_engine import insight_engine
-from research.synthesizer import analytical_synthesizer
-from research.citation_builder import citation_builder
-
+load_dotenv()
 logger = logging.getLogger(__name__)
+
 
 class ResearchService:
     """
-    Expert-grade Research Intelligence Orchestrator for EDITH.
-    Transitioned to 'Narrative-First Reasoning' model.
+    EDITH Research Engine — powered by Google Gemini Grounded Search.
+    Replaces the former 11-module multi-stage pipeline with a single,
+    fast, authoritative API call. Gemini handles retrieval, synthesis,
+    and citation grounding natively.
     """
-    
+
+    def __init__(self):
+        self.api_key = os.getenv("GEMINI_API_KEY")
+        self.model = "gemini-2.5-flash"
+        self._client = None
+
+    def _get_client(self):
+        """Lazy-initialize the Gemini client."""
+        if self._client is None:
+            try:
+                from google import genai
+                self._client = genai.Client(api_key=self.api_key)
+            except ImportError:
+                raise RuntimeError("google-genai package is not installed. Run: pip install google-genai")
+        return self._client
+
     async def perform_research(self, user_input: str, state: Optional[ConversationState] = None) -> str:
+        """
+        Performs a grounded web search using Google Gemini.
+
+        Gemini's native Google Search grounding:
+        - Automatically retrieves live web results
+        - Synthesizes a coherent analytical response
+        - Attaches source citations to claims
+        - No external API orchestration needed
+
+        Returns a formatted research report string.
+        """
+        logger.info(f"[Gemini Research] Query: {user_input[:100]}...")
+
+        if not self.api_key:
+            logger.error("GEMINI_API_KEY not set in .env")
+            return "Research unavailable: Gemini API key is not configured."
+
         try:
-            # 1. Domain Classification
-            logger.info("Stage 1: Classifying research domain...")
-            domain_info = await domain_classifier.classify(user_input)
-            
-            # 2. Routed & Authority-Aware Retrieval
-            logger.info(f"Stage 2: Executing routed retrieval for {domain_info.domain}...")
-            search_results = await retrieval_router.execute_retrieval(user_input, domain_info)
-            
-            if not search_results:
-                return "Analysis concluded: No high-authority information found on this topic."
+            from google import genai
+            from google.genai import types
 
-            # Register sources for citations
-            citation_builder.register_sources(search_results[:12])
-            
-            # Prepare raw data for reasoning layers
-            raw_findings = "\n\n".join([f"[{i+1}] {res.title}\n{res.snippet}" for i, res in enumerate(search_results[:12])])
+            client = self._get_client()
 
-            # 3. Narrative Planning (Identifying the Story & Tensions)
-            logger.info("Stage 3: Developing narrative plan...")
-            narrative_plan = await narrative_planner.plan(user_input, raw_findings)
+            # Build grounded prompt — instruct Gemini to write a rich analytical report
+            prompt = f"""You are EDITH, an advanced AI research assistant.
 
-            # 4. Human Impact Analysis (Grounding in Reality)
-            logger.info("Stage 4: Analyzing human & business impact...")
-            impact_analysis = await human_impact_analyzer.analyze(user_input, raw_findings, narrative_plan.central_story)
-            
-            # 5. Evidence Clustering (Semantic Grouping)
-            logger.info("Stage 5: Clustering evidence by semantic concept...")
-            evidence_data = [
-                {"url": res.url, "content": f"{res.title}: {res.snippet}"} 
-                for res in search_results[:12]
-            ]
-            clusters = await evidence_clusterer.cluster(user_input, evidence_data)
-            
-            # 6. Concept & Relationship Extraction
-            logger.info("Stage 6: Extracting frameworks and causal mechanisms...")
-            cluster_text = "\n\n".join([f"Concept: {c.concept_name}\nSummary: {c.summary}" for c in clusters])
-            concepts = await concept_extractor.extract(user_input, cluster_text)
-            
-            # 7. Insight Generation
-            logger.info("Stage 7: Generating strategic insights...")
-            intelligence_context = f"{cluster_text}\n\nConcepts: {str([c.dict() for c in concepts])}"
-            insights = await insight_engine.generate_insights(user_input, intelligence_context)
-            
-            # 8. Narrative Synthesis (Composing the Narrative)
-            logger.info("Stage 8: Synthesizing analytical narrative...")
-            bundle = {
-                "narrative_plan": narrative_plan.dict(),
-                "impact_analysis": impact_analysis.dict(),
-                "clusters": [c.dict() for c in clusters],
-                "concepts": [c.dict() for c in concepts],
-                "insights": [i.dict() for i in insights]
-            }
-            
-            report = await analytical_synthesizer.synthesize(user_input, json.dumps(bundle), state)
-            
-            # 9. Grounding (Citations)
-            reference_list = citation_builder.build_reference_list()
-            
-            return f"{report}\n{reference_list}"
+Using your real-time Google Search access, research the following topic and produce a comprehensive, well-structured analytical report:
+
+TOPIC: {user_input}
+
+REPORT REQUIREMENTS:
+- Use live, up-to-date web sources
+- Structure the report with clear headers and sections
+- Write in an expert analytical tone (clear, direct, insightful)
+- Focus on explanation, causality, and implications—not just facts
+- Prioritize authoritative and credible sources
+
+"""
+
+            response = client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    tools=[types.Tool(google_search=types.GoogleSearch())],
+                    temperature=0.2,
+                )
+            )
+
+            # Extract the text content
+            report_text = response.text if hasattr(response, 'text') else ""
+
+            if not report_text:
+                logger.warning("Gemini returned empty response")
+                return "Research completed but no content was returned. Please try again."
+
+            # Extract grounding sources if available
+            sources_block = ""
+            try:
+                grounding = response.candidates[0].grounding_metadata
+                if grounding and hasattr(grounding, 'grounding_chunks') and grounding.grounding_chunks:
+                    sources_block = "\n\n---\n**Sources:**\n"
+                    for i, chunk in enumerate(grounding.grounding_chunks, 1):
+                        if hasattr(chunk, 'web') and chunk.web:
+                            title = getattr(chunk.web, 'title', f'Source {i}')
+                            uri = getattr(chunk.web, 'uri', '')
+                            sources_block += f"[{i}] {title} — {uri}\n"
+            except Exception:
+                pass  # Sources are optional — report text is the primary output
+
+            full_report = report_text + sources_block
+            logger.info(f"[Gemini Research] Report generated: {len(full_report)} chars")
+            return full_report
 
         except Exception as e:
-            logger.error(f"Advanced Research Pipeline failed: {e}")
-            return "An internal error occurred during technical analysis. Please refine your query."
+            logger.error(f"[Gemini Research] Failed: {type(e).__name__}: {e}")
+            return f"Research encountered an error: {str(e)}. Please try again."
 
+
+# Singleton — drop-in replacement for the old ResearchService
 research_service = ResearchService()
-

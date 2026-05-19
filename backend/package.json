@@ -4,7 +4,7 @@
   "description": "EDITH AI Backend Preprocessing Layer",
   "main": "main.py",
   "scripts": {
-    "start": "uvicorn main:app --host 0.0.0.0 --port 8000 --reload --reload-exclude 'node_modules/*' --reload-exclude '__pycache__/*' --reload-exclude 'model_cache/*'"
+    "start": "uvicorn main:app --host 0.0.0.0 --port 8001 --reload --reload-exclude 'node_modules/*' --reload-exclude '__pycache__/*' --reload-exclude 'model_cache/*'"
   },
   "dependencies": {}
 }

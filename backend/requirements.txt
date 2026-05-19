@@ -4,9 +4,14 @@ fastapi
 uvicorn
 pydantic
 langdetect
-pyspellchecker
 sqlalchemy
 asyncpg
 faiss-cpu
 sentence-transformers
 numpy
+aiohttp
+google-genai
+reportlab
+python-docx
+openpyxl
+python-pptx
