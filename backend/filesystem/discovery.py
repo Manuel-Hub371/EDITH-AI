@@ -24,8 +24,25 @@ class DiscoveryEngine:
     def resolve_well_known(self, query: str) -> Optional[Path]:
         """
         Checks if the query matches a well-known system folder name.
+        Supports common variations/synonyms (e.g. "document folder" -> "documents").
         """
+        import re
         q = query.lower().strip()
+        # Remove trailing " folder" or " folders"
+        q = re.sub(r'\s+folders?$', '', q)
+        # Remove leading "my " (e.g., "my documents" -> "documents")
+        q = re.sub(r'^my\s+', '', q)
+        
+        # Map common synonyms to standardized keys
+        synonyms = {
+            "document": "documents",
+            "download": "downloads",
+            "picture": "pictures",
+            "video": "videos",
+            "music": "music"
+        }
+        q = synonyms.get(q, q)
+        
         if q in self.common_folders:
             path = self.common_folders[q]
             if path.exists():

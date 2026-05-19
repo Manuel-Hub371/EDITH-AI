@@ -89,6 +89,64 @@ async def preprocess_message(user_input: str, session_id: str, background_tasks:
             intent=intent_data
         )
 
+        # Resolve common coreferences and fill missing parameters from history
+        if intent_data.missing_parameters:
+            logger.info(f"Attempting context resolution for missing parameters: {intent_data.missing_parameters}")
+            
+            # 1. Resolve content/document_content coreferences (e.g., "put this in a PDF")
+            has_content_missing = any(p in intent_data.missing_parameters for p in ["content", "document_content", "text"])
+            if has_content_missing:
+                last_assistant_msg = current_state.last_assistant_message
+                if not last_assistant_msg and current_state.history:
+                    for turn in reversed(current_state.history):
+                        if turn.role == "assistant":
+                            last_assistant_msg = turn.content
+                            break
+                
+                if last_assistant_msg:
+                    if not intent_data.entities:
+                        intent_data.entities = {}
+                    intent_data.entities["content"] = last_assistant_msg
+                    intent_data.entities["document_content"] = last_assistant_msg
+                    
+                    # Remove from missing_parameters
+                    intent_data.missing_parameters = [p for p in intent_data.missing_parameters if p not in ["content", "document_content", "text"]]
+                    logger.info("Resolved missing content/document_content from last assistant message.")
+
+            # 2. Resolve missing filename/title coreferences (e.g., "save it on the desktop")
+            has_name_missing = any(p in intent_data.missing_parameters for p in ["file_name", "name", "title"])
+            if has_name_missing:
+                default_name = "report"
+                if current_state.active_topic:
+                    # Clean active_topic for filename
+                    clean_topic = re.sub(r'[^a-zA-Z0-9_]', '_', current_state.active_topic.lower())
+                    default_name = f"report_{clean_topic}"
+                
+                # Check document type to append correct extension
+                doc_type = "pdf"
+                if intent_data.entities:
+                    doc_type = intent_data.entities.get("document_type", "pdf")
+                
+                if not default_name.endswith(f".{doc_type}"):
+                    default_name = f"{default_name}.{doc_type}"
+
+                if not intent_data.entities:
+                    intent_data.entities = {}
+                intent_data.entities["file_name"] = default_name
+                intent_data.entities["title"] = current_state.active_topic or "Report"
+                
+                # Remove from missing_parameters
+                intent_data.missing_parameters = [p for p in intent_data.missing_parameters if p not in ["file_name", "name", "title"]]
+                logger.info(f"Resolved missing file_name/title to: {default_name}")
+
+            # 3. If missing parameters are now resolved, clear ambiguity flag
+            if not intent_data.missing_parameters:
+                intent_data.ambiguity_detected = False
+                intent_data.clarification_question = None
+                # If it had requires_tools but execution_mode got messed up, restore it
+                if "filesystem_access" in intent_data.capabilities_required or "document_generation" in intent_data.capabilities_required:
+                    intent_data.execution_strategy.requires_tools = True
+
         # 1. Planning Paths (Highest Priority for Complex Tasks)
         if intent_data.execution_strategy.execution_mode == "planner_required" or intent_data.execution_strategy.requires_planning:
             from execution_planner.service import execution_planner

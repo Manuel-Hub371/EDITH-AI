@@ -48,8 +48,7 @@ class FilesystemService:
                         last_created_folder_path = res.path
                     results.append(res.dict())
 
-                    # 2. & 5. File/Document Creation / Writing
-                elif sub_norm in ["create_file", "write_file", "new_file", "document_generation"] or "create" in sub_norm or "document" in sub_norm or "write" in sub_norm:
+                elif sub_norm in ["create_file", "write_file", "new_file", "document_generation", "save_file"] or "create" in sub_norm or "document" in sub_norm or "write" in sub_norm or "save" in sub_norm:
                     base_name = entities.get("path") or entities.get("location") or entities.get("target_folder")
                     file_name = entities.get("file_name") or entities.get("name") or entities.get("file")
                     content = entities.get("content", "")
