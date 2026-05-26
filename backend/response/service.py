@@ -14,9 +14,13 @@ logger = logging.getLogger(__name__)
 
 class ResponseGenerator:
     def __init__(self):
+        api_key = os.getenv("NVIDIA_API_KEY") or os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            logger.warning("NVIDIA_API_KEY is not set. Using dummy key to prevent startup crash.")
+            api_key = "dummy-api-key-for-startup-continuity"
         self.client = AsyncOpenAI(
             base_url=os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1"),
-            api_key=os.getenv("NVIDIA_API_KEY")
+            api_key=api_key
         )
         self.model = os.getenv("NVIDIA_MODEL", "meta/llama-3.1-70b-instruct")
 
