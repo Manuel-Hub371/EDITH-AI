@@ -1,0 +1,17 @@
+openai
+python-dotenv
+fastapi
+uvicorn
+pydantic
+langdetect
+sqlalchemy
+asyncpg
+faiss-cpu
+sentence-transformers
+numpy
+aiohttp
+google-genai
+reportlab
+python-docx
+openpyxl
+python-pptx

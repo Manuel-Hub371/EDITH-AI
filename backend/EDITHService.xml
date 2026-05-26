@@ -1,0 +1,7 @@
+<service>
+  <id>EDITH_Backend</id>
+  <name>EDITH Backend Service</name>
+  <description>FastAPI backend for EDITH AI Assistant</description>
+  <executable>%BASE%\edith-backend.exe</executable>
+  <logmode>rotate</logmode>
+</service>

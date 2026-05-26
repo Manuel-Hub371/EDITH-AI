@@ -1,0 +1,14 @@
+{
+  "name": "EDITH",
+  "version": "1.0.0",
+  "description": "EDITH — Enhanced Digital Intelligent Tech Helper",
+  "private": true,
+  "scripts": {
+    "start": "node scripts/start.js",
+    "dev": "node scripts/dev.js",
+    "build": "flutter build web --release --pwa-strategy offline-first"
+  },
+  "dependencies": {
+    "serve": "^14.2.3"
+  }
+}
