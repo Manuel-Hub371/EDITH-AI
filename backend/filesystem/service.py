@@ -19,7 +19,20 @@ class FilesystemService:
         entities = intent_data.entities or {}
         last_created_folder_path = None
 
-        for intent in intent_data.intents:
+        # Sort intents so independent folder operations are executed before file and move operations
+        def get_intent_priority(intent_detail):
+            sub_name = intent_detail.sub_intent.lower()
+            if sub_name in ["create_folder", "new_folder"]:
+                return 0
+            if sub_name in ["create_file", "write_file", "new_file", "document_generation", "save_file"] or "create" in sub_name or "document" in sub_name or "write" in sub_name or "save" in sub_name:
+                return 1
+            if sub_name in ["rename", "move"]:
+                return 2
+            return 3
+
+        sorted_intents = sorted(intent_data.intents, key=get_intent_priority)
+
+        for intent in sorted_intents:
             sub = intent.sub_intent
             sub_norm = sub.lower()
             
@@ -68,17 +81,26 @@ class FilesystemService:
                     if not file_name:
                         file_name = f"document_{title.lower().replace(' ', '_')}"
 
-                    # If we just created a folder in a previous step, default to it
-                    if last_created_folder_path:
-                        target_path = last_created_folder_path
-                    else:
-                        target_path = str(location_checker.validate_path("Desktop").resolved_path or "Desktop")
-                        if base_name:
+                    target_path = None
+                    if base_name:
+                        # Check if base_name is referring to the folder we just created
+                        if last_created_folder_path and Path(last_created_folder_path).name.lower() == str(base_name).lower():
+                            target_path = last_created_folder_path
+                        else:
                             res = location_checker.validate_path(base_name)
-                            if not res.success:
+                            if res.success:
+                                target_path = res.resolved_path
+                            else:
                                 results.append({"success": False, "error": f"Path error: The target location '{base_name}' does not exist on the system."})
                                 continue
-                            target_path = res.resolved_path
+
+                    # If no explicit base_name resolved, default to the folder we just created
+                    if not target_path and last_created_folder_path:
+                        target_path = last_created_folder_path
+
+                    # Default fallback to Desktop
+                    if not target_path:
+                        target_path = str(location_checker.validate_path("Desktop").resolved_path or "Desktop")
 
                     ext = Path(file_name).suffix.lower()
                     doc_type = self._normalize_document_type(doc_type, ext)
@@ -136,6 +158,10 @@ class FilesystemService:
                     if not item_name or not new_name:
                         results.append({"success": False, "error": "Missing parameters for move/rename. Need both source and destination."})
                         continue
+
+                    # If we just created a folder in a previous step, and the destination matches its name, resolve new_name to its full path
+                    if last_created_folder_path and Path(last_created_folder_path).name.lower() == str(new_name).lower():
+                        new_name = last_created_folder_path
                     
                     source_path = item_name
                     # If location is provided (e.g. "Documents") and item_name is just a name (e.g. "Emmanuel.txt")

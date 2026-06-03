@@ -18,327 +18,38 @@
     .splash {
       width: 420px;
       height: 420px;
-      background: linear-gradient(145deg, #0A1628 0%, #0D2347 45%, #0A3A6B 100%);
-      border-radius: 24px;
+      background: #ffffff;
+      border-radius: 12px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 0;
-      box-shadow: 0 32px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
-      opacity: 0;
-      animation: splashIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-      position: relative;
-      overflow: hidden;
+      gap: 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
     }
 
-    /* Decorative orbs */
-    .splash::before {
-      content: '';
-      position: absolute;
-      width: 280px;
-      height: 280px;
-      background: radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%);
-      top: -60px;
-      right: -60px;
-      border-radius: 50%;
-      pointer-events: none;
-    }
-    .splash::after {
-      content: '';
-      position: absolute;
-      width: 200px;
-      height: 200px;
-      background: radial-gradient(circle, rgba(96,165,250,0.12) 0%, transparent 70%);
-      bottom: -40px;
-      left: -40px;
-      border-radius: 50%;
-      pointer-events: none;
+    .logo-text {
+      font-size: 32px;
+      font-weight: 700;
+      color: #000000;
     }
 
-    @keyframes splashIn {
-      from { opacity: 0; transform: scale(0.88); }
-      to   { opacity: 1; transform: scale(1); }
-    }
-
-    /* Grid lines decoration */
-    .grid-lines {
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
-      background-size: 32px 32px;
-      border-radius: 24px;
-      pointer-events: none;
-    }
-
-    .content {
-      position: relative;
-      z-index: 2;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 28px;
-    }
-
-    /* Logo ring */
-    .logo-ring {
-      position: relative;
-      width: 120px;
-      height: 120px;
-      animation: logoFloat 3s ease-in-out infinite;
-    }
-
-    @keyframes logoFloat {
-      0%, 100% { transform: translateY(0px); }
-      50%       { transform: translateY(-6px); }
-    }
-
-    .ring-outer {
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      border: 1.5px solid rgba(96,165,250,0.3);
-      animation: ringRotate 8s linear infinite;
-    }
-    .ring-outer::before {
-      content: '';
-      position: absolute;
-      width: 8px;
-      height: 8px;
-      background: #60A5FA;
-      border-radius: 50%;
-      top: -4px;
-      left: 50%;
-      transform: translateX(-50%);
-      box-shadow: 0 0 10px #60A5FA;
-    }
-
-    @keyframes ringRotate {
-      from { transform: rotate(0deg); }
-      to   { transform: rotate(360deg); }
-    }
-
-    .ring-inner {
-      position: absolute;
-      inset: 12px;
-      border-radius: 50%;
-      border: 1px solid rgba(96,165,250,0.15);
-      animation: ringRotate 12s linear infinite reverse;
-    }
-
-    .logo-center {
-      position: absolute;
-      inset: 20px;
-      background: linear-gradient(135deg, #1E40AF, #2563EB);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 30px rgba(37,99,235,0.5), 0 0 60px rgba(37,99,235,0.2);
-    }
-
-    .logo-center svg {
-      width: 42px;
-      height: 42px;
-    }
-
-    /* Text */
-    .logo-text-group {
-      text-align: center;
-      animation: textFadeIn 0.6s ease 0.4s both;
-    }
-
-    @keyframes textFadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .logo-name {
-      font-size: 42px;
-      font-weight: 800;
-      letter-spacing: 6px;
-      background: linear-gradient(135deg, #FFFFFF 0%, #93C5FD 50%, #60A5FA 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      line-height: 1;
-    }
-
-    .logo-sub {
-      font-size: 11px;
-      color: rgba(147,197,253,0.6);
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      margin-top: 6px;
-    }
-
-    /* Loading */
-    .loading-wrap {
-      width: 240px;
-      animation: textFadeIn 0.5s ease 0.7s both;
-    }
-
-    .loading-track {
-      height: 3px;
-      background: rgba(255,255,255,0.07);
-      border-radius: 2px;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .loading-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #1D4ED8, #3B82F6, #93C5FD);
-      border-radius: 2px;
-      animation: loadFill 2.8s cubic-bezier(0.4, 0, 0.2, 1) 0.8s forwards;
-      position: relative;
-    }
-
-    .loading-fill::after {
-      content: '';
-      position: absolute;
-      right: 0;
-      top: -2px;
-      width: 6px;
-      height: 7px;
-      background: #93C5FD;
-      border-radius: 50%;
-      box-shadow: 0 0 8px #93C5FD;
-    }
-
-    @keyframes loadFill {
-      0%   { width: 0%; }
-      15%  { width: 20%; }
-      40%  { width: 48%; }
-      65%  { width: 70%; }
-      85%  { width: 88%; }
-      100% { width: 100%; }
-    }
-
-    .loading-label {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 8px;
-    }
-
-    .loading-label span {
-      font-size: 10px;
-      color: rgba(147,197,253,0.4);
-      letter-spacing: 0.5px;
-    }
-
-    .loading-pct {
-      font-size: 10px;
-      color: rgba(147,197,253,0.5);
-      font-variant-numeric: tabular-nums;
-    }
-
-    /* Particles */
-    .particle {
-      position: absolute;
-      width: 3px;
-      height: 3px;
-      background: rgba(96,165,250,0.5);
-      border-radius: 50%;
-      animation: particleDrift linear infinite;
-    }
-    .particle:nth-child(1)  { left: 15%; top: 20%; animation-duration: 6s; animation-delay: 0s; }
-    .particle:nth-child(2)  { left: 80%; top: 15%; animation-duration: 8s; animation-delay: 1s; }
-    .particle:nth-child(3)  { left: 60%; top: 70%; animation-duration: 7s; animation-delay: 2s; }
-    .particle:nth-child(4)  { left: 25%; top: 75%; animation-duration: 9s; animation-delay: 0.5s; }
-    .particle:nth-child(5)  { left: 90%; top: 50%; animation-duration: 5s; animation-delay: 1.5s; }
-
-    @keyframes particleDrift {
-      0%   { transform: translateY(0) scale(1); opacity: 0.5; }
-      50%  { transform: translateY(-20px) scale(1.5); opacity: 1; }
-      100% { transform: translateY(0) scale(1); opacity: 0.5; }
+    .loading-text {
+      font-size: 14px;
+      color: #666666;
     }
   </style>
 </head>
 <body>
   <div class="splash">
-    <div class="grid-lines"></div>
-
-    <!-- Floating particles -->
-    <div class="particle"></div>
-    <div class="particle"></div>
-    <div class="particle"></div>
-    <div class="particle"></div>
-    <div class="particle"></div>
-
-    <div class="content">
-      <!-- Animated logo ring -->
-      <div class="logo-ring">
-        <div class="ring-outer"></div>
-        <div class="ring-inner"></div>
-        <div class="logo-center">
-          <!-- Option 6: Neon Dark Bot -->
-          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <radialGradient id="sg6" cx="40%" cy="35%" r="65%">
-                <stop offset="0%" stop-color="#3B82F6"/>
-                <stop offset="100%" stop-color="#0F172A"/>
-              </radialGradient>
-            </defs>
-            <circle cx="50" cy="50" r="48" fill="url(#sg6)"/>
-            <circle cx="50" cy="50" r="48" fill="none" stroke="#3B82F6" stroke-width="1.5" opacity="0.5"/>
-            <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(96,165,250,0.2)" stroke-width="1"/>
-            <rect x="47" y="8" width="6" height="14" rx="3" fill="#60A5FA"/>
-            <circle cx="50" cy="7" r="4" fill="#93C5FD"/>
-            <rect x="20" y="22" width="60" height="44" rx="10" fill="rgba(255,255,255,0.06)" stroke="#60A5FA" stroke-width="1.5"/>
-            <rect x="9" y="32" width="12" height="18" rx="5" fill="rgba(96,165,250,0.3)" stroke="#60A5FA" stroke-width="1"/>
-            <rect x="79" y="32" width="12" height="18" rx="5" fill="rgba(96,165,250,0.3)" stroke="#60A5FA" stroke-width="1"/>
-            <circle cx="36" cy="42" r="7" fill="rgba(0,229,255,0.15)" stroke="#00E5FF" stroke-width="1.5"/>
-            <circle cx="64" cy="42" r="7" fill="rgba(0,229,255,0.15)" stroke="#00E5FF" stroke-width="1.5"/>
-            <circle cx="36" cy="42" r="3.5" fill="#00E5FF"/>
-            <circle cx="64" cy="42" r="3.5" fill="#00E5FF"/>
-            <path d="M33 55 Q50 65 67 55" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" fill="none"/>
-          </svg>
-        </div>
-      </div>
-
-      <!-- Name -->
-      <div class="logo-text-group">
-        <div class="logo-name">EDITH</div>
-        <div class="logo-sub">Private AI Assistant</div>
-      </div>
-
-      <!-- Loading bar -->
-      <div class="loading-wrap">
-        <div class="loading-track">
-          <div class="loading-fill" id="loading-fill"></div>
-        </div>
-        <div class="loading-label">
-          <span>Initializing...</span>
-          <span class="loading-pct" id="loading-pct">0%</span>
-        </div>
-      </div>
-    </div>
+    <div class="logo-text">EDITH</div>
+    <div class="loading-text" id="splash-status">Loading...</div>
   </div>
 
   <script>
-    // Animate percentage counter
-    const pct = document.getElementById('loading-pct');
-    const labels = ['Initializing...', 'Loading models...', 'Preparing workspace...', 'Almost ready...'];
-    const labelEl = document.querySelector('.loading-label span');
-    let current = 0;
-    const duration = 3200;
-    const start = Date.now();
-
-    function tick() {
-      const elapsed = Date.now() - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      current = Math.round(eased * 100);
-      pct.textContent = current + '%';
-      const labelIdx = Math.floor(progress * labels.length);
-      labelEl.textContent = labels[Math.min(labelIdx, labels.length - 1)];
-      if (progress < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
+    window.__splashDone = function() {
+      document.getElementById('splash-status').textContent = 'Ready!';
+    };
   </script>
 </body>
 </html>

@@ -1,14 +1,14 @@
 import os
 import logging
 from openai import AsyncOpenAI
-from dotenv import load_dotenv
+from utils.env_loader import load_env
 from typing import Optional
 from utils.network import retry_with_backoff
 from response.models import AIResponse
 from preprocessing.models import PreprocessedResponse
 from conversational_context.models import ConversationState
 
-load_dotenv()
+load_env()
 
 logger = logging.getLogger(__name__)
 

@@ -5,185 +5,695 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:8001 ws://localhost:8001;" />
-  <title>EDITH</title>
+    content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file:; connect-src 'self' http://localhost:8001;" />
+  <title>NovaGen - Next Generation AI Engineering</title>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="enhanced-additions.css" />
   <script src="marked.min.js"></script>
 </head>
 
 <body>
-  <div id="app" class="mode-normal">
-
-    <!-- ═══════════════════════════════════════════════════════
-       NAVBAR — full-width, always blue/green
-  ═══════════════════════════════════════════════════════ -->
-    <nav class="navbar" id="navbar">
-      <div class="navbar-left">
-        <div class="navbar-logo">
-          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <radialGradient id="ng6" cx="40%" cy="35%" r="65%">
-                <stop offset="0%" stop-color="#3B82F6" />
-                <stop offset="100%" stop-color="#0F172A" />
-              </radialGradient>
-            </defs>
-            <circle cx="50" cy="50" r="48" fill="url(#ng6)" />
-            <circle cx="50" cy="50" r="48" fill="none" stroke="#3B82F6" stroke-width="1.5" opacity="0.5" />
-            <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(96,165,250,0.2)" stroke-width="1" />
-            <rect x="47" y="8" width="6" height="14" rx="3" fill="#60A5FA" />
-            <circle cx="50" cy="7" r="4" fill="#93C5FD" />
-            <rect x="20" y="22" width="60" height="44" rx="10" fill="rgba(255,255,255,0.06)" stroke="#60A5FA"
-              stroke-width="1.5" />
-            <rect x="9" y="32" width="12" height="18" rx="5" fill="rgba(96,165,250,0.3)" stroke="#60A5FA"
-              stroke-width="1" />
-            <rect x="79" y="32" width="12" height="18" rx="5" fill="rgba(96,165,250,0.3)" stroke="#60A5FA"
-              stroke-width="1" />
-            <circle cx="36" cy="42" r="7" fill="rgba(0,229,255,0.15)" stroke="#00E5FF" stroke-width="1.5" />
-            <circle cx="64" cy="42" r="7" fill="rgba(0,229,255,0.15)" stroke="#00E5FF" stroke-width="1.5" />
-            <circle cx="36" cy="42" r="3.5" fill="#00E5FF" />
-            <circle cx="64" cy="42" r="3.5" fill="#00E5FF" />
-            <path d="M33 55 Q50 65 67 55" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" fill="none" />
-          </svg>
+  <div id="app">
+    <!-- Custom Title Bar -->
+    <div class="custom-titlebar">
+      <div class="titlebar-drag-region">
+        <div class="titlebar-left">
+          <div class="titlebar-logo">
+            <svg width="16" height="16" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <polygon points="50,10 90,80 10,80" stroke="currentColor" stroke-width="3" fill="none" />
+              <text x="50" y="70" font-family="Arial, sans-serif" font-size="50" font-weight="bold" text-anchor="middle"
+                fill="currentColor">E</text>
+            </svg>
+          </div>
+          <span class="titlebar-title">NovaGen</span>
+          <div class="titlebar-menu">
+            <div class="menu-item-wrapper">
+              <span class="menu-item" id="menu-file">File</span>
+              <div class="dropdown-menu" id="file-dropdown">
+                <div class="dropdown-item" data-action="new-file">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                  <span>New File</span>
+                  <span class="shortcut">Ctrl+N</span>
+                </div>
+                <div class="dropdown-item" data-action="new-folder">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                  </svg>
+                  <span>New Folder</span>
+                  <span class="shortcut">Ctrl+Shift+N</span>
+                </div>
+                <div class="dropdown-separator"></div>
+                <div class="dropdown-item" data-action="open-file">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                  <span>Open File...</span>
+                  <span class="shortcut">Ctrl+O</span>
+                </div>
+                <div class="dropdown-item" data-action="open-folder">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                  </svg>
+                  <span>Open Folder...</span>
+                  <span class="shortcut">Ctrl+K Ctrl+O</span>
+                </div>
+                <div class="dropdown-item" data-action="close-folder">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                    <line x1="18" y1="9" x2="6" y2="21" />
+                  </svg>
+                  <span>Close Folder</span>
+                  <span class="shortcut">Ctrl+K F</span>
+                </div>
+                <div class="dropdown-separator"></div>
+                <div class="dropdown-item" data-action="save">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                    <polyline points="17 21 17 13 7 13 7 21" />
+                    <polyline points="7 3 7 8 15 8" />
+                  </svg>
+                  <span>Save</span>
+                  <span class="shortcut">Ctrl+S</span>
+                </div>
+                <div class="dropdown-item" data-action="save-as">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                    <polyline points="17 21 17 13 7 13 7 21" />
+                    <polyline points="7 3 7 8 15 8" />
+                  </svg>
+                  <span>Save As...</span>
+                  <span class="shortcut">Ctrl+Shift+S</span>
+                </div>
+                <div class="dropdown-item" data-action="save-all">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <path d="M8 3v3M16 3v3M8 18v3M16 18v3" />
+                  </svg>
+                  <span>Save All</span>
+                  <span class="shortcut">Ctrl+K S</span>
+                </div>
+                <div class="dropdown-separator"></div>
+                <div class="dropdown-item" data-action="close-tab">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                  <span>Close Tab</span>
+                  <span class="shortcut">Ctrl+W</span>
+                </div>
+                <div class="dropdown-item" data-action="close-all-tabs">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                    <circle cx="12" cy="12" r="10" />
+                  </svg>
+                  <span>Close All Tabs</span>
+                  <span class="shortcut">Ctrl+K W</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="menu-item-wrapper">
+              <span class="menu-item" id="menu-edit">Edit</span>
+              <div class="dropdown-menu" id="edit-dropdown">
+                <div class="dropdown-item" data-action="undo">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 7v6h6" />
+                    <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+                  </svg>
+                  <span>Undo</span>
+                  <span class="shortcut">Ctrl+Z</span>
+                </div>
+                <div class="dropdown-item" data-action="redo">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 7v6h-6" />
+                    <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
+                  </svg>
+                  <span>Redo</span>
+                  <span class="shortcut">Ctrl+Y</span>
+                </div>
+                <div class="dropdown-separator"></div>
+                <div class="dropdown-item" data-action="cut">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="6" cy="6" r="3" />
+                    <circle cx="6" cy="18" r="3" />
+                    <line x1="20" y1="4" x2="8.12" y2="15.88" />
+                    <line x1="14.47" y1="14.48" x2="20" y2="20" />
+                  </svg>
+                  <span>Cut</span>
+                  <span class="shortcut">Ctrl+X</span>
+                </div>
+                <div class="dropdown-item" data-action="copy">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                  <span>Copy</span>
+                  <span class="shortcut">Ctrl+C</span>
+                </div>
+                <div class="dropdown-item" data-action="paste">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+                  </svg>
+                  <span>Paste</span>
+                  <span class="shortcut">Ctrl+V</span>
+                </div>
+                <div class="dropdown-separator"></div>
+                <div class="dropdown-item" data-action="find">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" />
+                  </svg>
+                  <span>Find</span>
+                  <span class="shortcut">Ctrl+F</span>
+                </div>
+                <div class="dropdown-item" data-action="replace">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2L20 8" />
+                    <path d="M20 8v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h8" />
+                  </svg>
+                  <span>Replace</span>
+                  <span class="shortcut">Ctrl+H</span>
+                </div>
+              </div>
+            </div>
+            <div class="menu-item-wrapper">
+              <span class="menu-item" id="menu-selection">Selection</span>
+              <div class="dropdown-menu" id="selection-dropdown">
+                <div class="dropdown-item" data-action="select-all">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 3a2 2 0 0 0-2 2M19 3a2 2 0 0 1 2 2M21 19a2 2 0 0 1-2 2M5 21a2 2 0 0 1-2-2M9 3h1M9 21h1M15 3h1M15 21h1M3 9v1M21 9v1M3 15v1M21 15v1" />
+                  </svg>
+                  <span>Select All</span>
+                  <span class="shortcut">Ctrl+A</span>
+                </div>
+                <div class="dropdown-item" data-action="select-line">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="8" y1="6" x2="21" y2="6" />
+                    <line x1="8" y1="12" x2="21" y2="12" />
+                    <line x1="8" y1="18" x2="21" y2="18" />
+                  </svg>
+                  <span>Select Line</span>
+                  <span class="shortcut">Ctrl+L</span>
+                </div>
+              </div>
+            </div>
+            <div class="menu-item-wrapper">
+              <span class="menu-item" id="menu-view">View</span>
+              <div class="dropdown-menu" id="view-dropdown">
+                <div class="dropdown-item" data-action="toggle-sidebar">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <line x1="9" y1="3" x2="9" y2="21" />
+                  </svg>
+                  <span>Toggle Sidebar</span>
+                  <span class="shortcut">Ctrl+B</span>
+                </div>
+                <div class="dropdown-item" data-action="toggle-terminal">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="4 17 10 11 4 5" />
+                    <line x1="12" y1="19" x2="20" y2="19" />
+                  </svg>
+                  <span>Toggle Terminal</span>
+                  <span class="shortcut">Ctrl+`</span>
+                </div>
+                <div class="dropdown-separator"></div>
+                <div class="dropdown-item" data-action="zoom-in">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    <line x1="11" y1="8" x2="11" y2="14" />
+                    <line x1="8" y1="11" x2="14" y2="11" />
+                  </svg>
+                  <span>Zoom In</span>
+                  <span class="shortcut">Ctrl++</span>
+                </div>
+                <div class="dropdown-item" data-action="zoom-out">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    <line x1="8" y1="11" x2="14" y2="11" />
+                  </svg>
+                  <span>Zoom Out</span>
+                  <span class="shortcut">Ctrl+-</span>
+                </div>
+                <div class="dropdown-item" data-action="reset-zoom">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="16" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                  </svg>
+                  <span>Reset Zoom</span>
+                  <span class="shortcut">Ctrl+0</span>
+                </div>
+              </div>
+            </div>
+            <div class="menu-item-wrapper">
+              <span class="menu-item" id="menu-run">Run</span>
+              <div class="dropdown-menu" id="run-dropdown">
+                <div class="dropdown-item" data-action="run-file">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                  <span>Run File</span>
+                  <span class="shortcut">Ctrl+F5</span>
+                </div>
+                <div class="dropdown-item" data-action="run-without-debugging">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                  <span>Run Without Debugging</span>
+                  <span class="shortcut">Ctrl+Shift+F5</span>
+                </div>
+                <div class="dropdown-separator"></div>
+                <div class="dropdown-item" data-action="stop">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="6" y="6" width="12" height="12" />
+                  </svg>
+                  <span>Stop</span>
+                  <span class="shortcut">Shift+F5</span>
+                </div>
+                <div class="dropdown-separator"></div>
+                <div class="dropdown-item" data-action="add-configuration">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24" />
+                  </svg>
+                  <span>Add Configuration...</span>
+                </div>
+              </div>
+            </div>
+            <div class="menu-item-wrapper">
+              <span class="menu-item" id="menu-terminal">Terminal</span>
+              <div class="dropdown-menu" id="terminal-dropdown">
+                <div class="dropdown-item" data-action="new-terminal">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="4 17 10 11 4 5" />
+                    <line x1="12" y1="19" x2="20" y2="19" />
+                  </svg>
+                  <span>New Terminal</span>
+                  <span class="shortcut">Ctrl+Shift+`</span>
+                </div>
+                <div class="dropdown-item" data-action="split-terminal">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <line x1="12" y1="3" x2="12" y2="21" />
+                  </svg>
+                  <span>Split Terminal</span>
+                  <span class="shortcut">Ctrl+Shift+5</span>
+                </div>
+                <div class="dropdown-separator"></div>
+                <div class="dropdown-item" data-action="toggle-terminal">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="4 17 10 11 4 5" />
+                    <line x1="12" y1="19" x2="20" y2="19" />
+                  </svg>
+                  <span>Toggle Terminal</span>
+                  <span class="shortcut">Ctrl+`</span>
+                </div>
+                <div class="dropdown-separator"></div>
+                <div class="dropdown-item" data-action="kill-terminal">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                  <span>Kill Terminal</span>
+                </div>
+                <div class="dropdown-item" data-action="close-terminal">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                  <span>Close Terminal</span>
+                </div>
+              </div>
+            </div>
+            <div class="menu-item-wrapper">
+              <span class="menu-item" id="menu-help">Help</span>
+              <div class="dropdown-menu" id="help-dropdown">
+                <div class="dropdown-item" data-action="welcome">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  <span>Welcome</span>
+                </div>
+                <div class="dropdown-item" data-action="keyboard-shortcuts">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="4" width="20" height="16" rx="2" />
+                    <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10" />
+                  </svg>
+                  <span>Keyboard Shortcuts</span>
+                  <span class="shortcut">Ctrl+K Ctrl+S</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <span class="navbar-name">EDITH</span>
+        <div class="titlebar-center">
+          <div class="titlebar-search">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+            <input type="text" placeholder="Search files, commands, symbols..." />
+            <span class="search-shortcut">Ctrl+P</span>
+          </div>
+        </div>
+        <div class="titlebar-right">
+          <button class="titlebar-action-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3" />
+            </svg>
+            <span>Run</span>
+          </button>
+          <button class="titlebar-action-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="4 17 10 11 4 5" />
+              <line x1="12" y1="19" x2="20" y2="19" />
+            </svg>
+            <span>Terminal</span>
+          </button>
+          <button class="titlebar-action-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <line x1="12" y1="3" x2="12" y2="21" />
+            </svg>
+            <span>Split</span>
+          </button>
+        </div>
       </div>
-
-      <div class="navbar-right">
-        <div class="navbar-status">
-          <span class="status-dot"></span>
-          <span class="status-text">Online</span>
-        </div>
-        <button class="navbar-btn" id="btn-settings" title="Settings">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3" />
-            <path
-              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+      <div class="titlebar-controls">
+        <button class="titlebar-control-btn" id="btn-minimize">
+          <svg width="10" height="10" viewBox="0 0 10 10">
+            <path d="M0 5h10" stroke="currentColor" stroke-width="1" />
+          </svg>
+        </button>
+        <button class="titlebar-control-btn" id="btn-maximize" title="Maximize">
+          <svg width="10" height="10" viewBox="0 0 10 10">
+            <rect x="1" y="1" width="8" height="8" stroke="currentColor" fill="none" stroke-width="1" />
+          </svg>
+        </button>
+        <button class="titlebar-control-btn titlebar-close" id="btn-close">
+          <svg width="10" height="10" viewBox="0 0 10 10">
+            <path d="M0 0L10 10M10 0L0 10" stroke="currentColor" stroke-width="1" />
           </svg>
         </button>
       </div>
-    </nav>
+    </div>
 
-    <!-- ═══════════════════════════════════════════════════════
-       MAIN CONTENT — fills remaining height
-  ═══════════════════════════════════════════════════════ -->
-    <div class="main" id="main">
-
-      <!-- ── CONVERSATION AREA ─────────────────────────────── -->
-      <div class="chat-area" id="chat-area">
-
-        <!-- Welcome (shown before first message) -->
-        <div class="welcome" id="welcome">
-          <div class="welcome-icon" id="welcome-icon">
-            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <radialGradient id="wg6" cx="40%" cy="35%" r="65%">
-                  <stop offset="0%" stop-color="#3B82F6" />
-                  <stop offset="100%" stop-color="#0F172A" />
-                </radialGradient>
-              </defs>
-              <circle cx="50" cy="50" r="48" fill="url(#wg6)" />
-              <circle cx="50" cy="50" r="48" fill="none" stroke="#3B82F6" stroke-width="1.5" opacity="0.5" />
-              <circle cx="50" cy="50" r="44" fill="none" stroke="rgba(96,165,250,0.2)" stroke-width="1" />
-              <rect x="47" y="8" width="6" height="14" rx="3" fill="#60A5FA" />
-              <circle cx="50" cy="7" r="4" fill="#93C5FD" />
-              <rect x="20" y="22" width="60" height="44" rx="10" fill="rgba(255,255,255,0.06)" stroke="#60A5FA"
-                stroke-width="1.5" />
-              <rect x="9" y="32" width="12" height="18" rx="5" fill="rgba(96,165,250,0.3)" stroke="#60A5FA"
-                stroke-width="1" />
-              <rect x="79" y="32" width="12" height="18" rx="5" fill="rgba(96,165,250,0.3)" stroke="#60A5FA"
-                stroke-width="1" />
-              <circle cx="36" cy="42" r="7" fill="rgba(0,229,255,0.15)" stroke="#00E5FF" stroke-width="1.5" />
-              <circle cx="64" cy="42" r="7" fill="rgba(0,229,255,0.15)" stroke="#00E5FF" stroke-width="1.5" />
-              <circle cx="36" cy="42" r="3.5" fill="#00E5FF" />
-              <circle cx="64" cy="42" r="3.5" fill="#00E5FF" />
-              <path d="M33 55 Q50 65 67 55" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" fill="none" />
+    <!-- Main IDE Container -->
+    <div class="ide-container">
+      <!-- Activity Bar -->
+      <div class="activity-bar">
+        <div class="activity-bar-top">
+          <div class="activity-icon active" data-view="explorer" title="Explorer">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
             </svg>
           </div>
-          <h1 class="welcome-title" id="welcome-title"></h1>
-          <p class="welcome-sub" id="welcome-sub">How may I help you ? </p>
+          <div class="activity-icon" data-view="search" title="Search">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </div>
+          <div class="activity-icon" data-view="git" title="Source Control">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="18" cy="18" r="3" />
+              <circle cx="6" cy="6" r="3" />
+              <path d="M6 9v6" />
+              <path d="M13 6h3a2 2 0 0 1 2 2v7" />
+            </svg>
+          </div>
+          <div class="activity-icon" data-view="extensions" title="Extensions">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+            </svg>
+          </div>
         </div>
-
-        <!-- Messages -->
-        <div class="messages" id="messages"></div>
-
+        <div class="activity-bar-bottom">
+          <div class="activity-icon" data-view="settings" title="Settings">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3" />
+              <path
+                d="M12 1v6m0 6v6M5.64 5.64l4.24 4.24m4.24 4.24l4.24 4.24M1 12h6m6 0h6M5.64 18.36l4.24-4.24m4.24-4.24l4.24-4.24" />
+            </svg>
+          </div>
+        </div>
       </div>
 
-      <!-- ── BOTTOM PANEL: mode toggle + input ─────────────── -->
-      <div class="bottom-panel" id="bottom-panel">
-
-        <!-- Mode toggle — sits directly above input -->
-        <div class="mode-bar" id="mode-bar">
-          <div class="mode-seg" id="mode-seg">
-            <button class="seg-btn active" id="seg-normal" data-mode="normal">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      <!-- Sidebar -->
+      <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <span class="sidebar-title">EXPLORER</span>
+          <div class="sidebar-actions">
+            <button class="sidebar-action" title="New File">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
               </svg>
-              Normal
             </button>
-            <button class="seg-btn" id="seg-agent" data-mode="agent">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="16 18 22 12 16 6" />
-                <polyline points="8 6 2 12 8 18" />
+            <button class="sidebar-action" title="New Folder">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
               </svg>
-              Agent
+            </button>
+            <button class="sidebar-action" title="Refresh">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
+            </button>
+            <button class="sidebar-action" title="Collapse All">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="18 15 12 9 6 15" />
+              </svg>
             </button>
           </div>
-          <span class="mode-label" id="mode-label">Chat with EDITH</span>
         </div>
-
-        <!-- Input box -->
-        <div class="input-wrap" id="input-wrap">
-          <div class="input-box" id="input-box">
-            <div class="input-tools">
-              <button class="tool-btn" id="btn-mic" title="Voice input">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                  <line x1="12" y1="19" x2="12" y2="23" />
-                  <line x1="8" y1="23" x2="16" y2="23" />
-                </svg>
-              </button>
-              <button class="tool-btn" id="btn-image" title="Upload image">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
-              </button>
-              <button class="tool-btn" id="btn-file" title="Attach file">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <path
-                    d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                </svg>
-              </button>
-              <div class="tool-sep"></div>
+        <div class="sidebar-content">
+          <div class="no-folder-state" id="no-folder-state">
+            <div class="no-folder-icon">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+              </svg>
             </div>
-            <textarea id="msg-input" placeholder="Message EDITH..." rows="1" autocomplete="off"
-              spellcheck="true"></textarea>
-            <button class="send-btn" id="btn-send" disabled>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                stroke-linecap="round" stroke-linejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13" />
-                <polygon points="22 2 15 22 11 13 2 9 22 2" />
-              </svg>
-            </button>
+            <p class="no-folder-text">No folder opened</p>
+            <button class="open-folder-btn" id="open-folder-btn">Open Folder</button>
           </div>
-          <p class="input-hint">EHANCED · DIGITAL · INTELLIGENT · TECH · HELPER</p>
+          <div class="file-tree" id="file-tree"></div>
+        </div>
+      </div>
+
+      <!-- Main Content Area -->
+      <div class="main-content">
+        <!-- Editor Area -->
+        <div class="editor-container">
+          <!-- Welcome Screen -->
+          <div class="welcome-screen" id="welcome-screen">
+            <div class="welcome-logo">
+              <svg width="120" height="120" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="triangleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
+                  </linearGradient>
+                </defs>
+                <polygon points="50,10 90,80 10,80" stroke="url(#triangleGradient)" stroke-width="4" fill="none" />
+                <text x="50" y="70" font-family="Arial, sans-serif" font-size="50" font-weight="bold"
+                  text-anchor="middle" fill="url(#triangleGradient)">E</text>
+              </svg>
+            </div>
+            <h1 class="welcome-title">NovaGen</h1>
+            <p class="welcome-subtitle">Next-Generation AI Engineering</p>
+
+            <div class="welcome-sections">
+              <div class="welcome-section">
+                <h3>START</h3>
+                <a href="#" class="welcome-link" data-action="new-file">New File</a>
+                <a href="#" class="welcome-link" data-action="open-file">Open File...</a>
+                <a href="#" class="welcome-link" data-action="open-folder">Open Folder...</a>
+              </div>
+
+              <div class="welcome-section">
+                <h3>RECENT</h3>
+                <p class="welcome-empty">No recent files</p>
+              </div>
+
+              <div class="welcome-section">
+                <h3>HELP</h3>
+                <a href="#" class="welcome-link">Keyboard Shortcuts</a>
+                <a href="#" class="welcome-link">Documentation</a>
+                <a href="#" class="welcome-link">Release Notes</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Code Editor (hidden by default) -->
+          <div class="code-editor-container" id="code-editor-container" style="display: none;">
+            <!-- Editor Tabs -->
+            <div class="editor-tabs" id="editor-tabs"></div>
+            
+            <!-- Editor Toolbar/Breadcrumb -->
+            <div class="editor-toolbar">
+              <div class="editor-breadcrumb" id="editor-breadcrumb">
+                <span class="breadcrumb-item">No file open</span>
+              </div>
+              <div class="editor-info">
+                <span class="editor-language" id="editor-language">Plain Text</span>
+                <span class="editor-separator">|</span>
+                <span class="editor-encoding">UTF-8</span>
+                <span class="editor-separator">|</span>
+                <span class="editor-line-col" id="editor-line-col">Ln 1, Col 1</span>
+              </div>
+            </div>
+            
+            <!-- Main Editor Area -->
+            <div class="editor-main">
+              <!-- Gutter (Line Numbers + Decorations) -->
+              <div class="editor-gutter">
+                <div class="line-numbers" id="line-numbers">1</div>
+              </div>
+              
+              <!-- Editor Content -->
+              <div class="editor-content-wrapper">
+                <!-- Syntax highlighting layer -->
+                <pre class="syntax-highlight" id="syntax-highlight" aria-hidden="true"></pre>
+                <!-- Actual editable textarea -->
+                <textarea class="code-editor" id="code-editor" spellcheck="false" placeholder="Start typing or open a file..."></textarea>
+              </div>
+              
+              <!-- Minimap (Optional - can show preview) -->
+              <div class="editor-minimap" id="editor-minimap" title="Code minimap">
+                <div class="minimap-slider"></div>
+              </div>
+            </div>
+          </div>
         </div>
 
+        <!-- Bottom Panel -->
+        <div class="bottom-panel" id="bottom-panel">
+          <div class="panel-header">
+            <div class="panel-tabs">
+              <button class="panel-tab active" data-panel="terminal">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="4 17 10 11 4 5" />
+                  <line x1="12" y1="19" x2="20" y2="19" />
+                </svg>
+                <span>Terminal</span>
+              </button>
+              <button class="panel-tab" data-panel="problems">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>Problems</span>
+                <span class="panel-badge">0</span>
+              </button>
+              <button class="panel-tab" data-panel="output">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+                <span>Output</span>
+              </button>
+              <button class="panel-tab" data-panel="ports">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                </svg>
+                <span>Ports</span>
+              </button>
+            </div>
+            <div class="panel-actions">
+              <button class="panel-action-btn" title="Clear">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+              </button>
+              <button class="panel-action-btn" title="Split Terminal">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <line x1="12" y1="3" x2="12" y2="21" />
+                </svg>
+              </button>
+              <button class="panel-action-btn" title="Maximize Panel">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="15 3 21 3 21 9" />
+                  <polyline points="9 21 3 21 3 15" />
+                  <line x1="21" y1="3" x2="14" y2="10" />
+                  <line x1="3" y1="21" x2="10" y2="14" />
+                </svg>
+              </button>
+              <button class="panel-action-btn" id="btn-close-panel" title="Close Panel">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="panel-content">
+            <div class="terminal" id="terminal">
+              <div class="terminal-line"><span class="terminal-prompt">NovaGen Terminal</span> - type "help" for commands
+              </div>
+              <div class="terminal-line">&nbsp;</div>
+              <div class="terminal-input-line">
+                <span class="terminal-prompt">$</span>
+                <input type="text" class="terminal-input" id="terminal-input" placeholder="Enter command..." />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
+    <!-- Status Bar -->
+    <div class="statusbar">
+      <div class="statusbar-left">
+        <div class="statusbar-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="18" cy="18" r="3" />
+            <circle cx="6" cy="6" r="3" />
+            <path d="M6 9v12" />
+          </svg>
+          <span>main</span>
+        </div>
+        <div class="statusbar-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+          <span>0</span>
+        </div>
+        <div class="statusbar-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          <span>0</span>
+        </div>
+      </div>
+      <div class="statusbar-right">
+        <div class="statusbar-item">Ln 1, Col 1</div>
+        <div class="statusbar-item">UTF-8</div>
+        <div class="statusbar-item">LF</div>
+        <div class="statusbar-item">Plain Text</div>
+        <div class="statusbar-item">Spaces: 2</div>
+      </div>
+    </div>
   </div>
-
-  <input type="file" id="file-img" accept="image/*" style="display:none" />
-  <input type="file" id="file-doc" accept=".pdf,.doc,.docx,.txt,.md,.csv,.json" style="display:none" />
 
   <script src="api.js"></script>
   <script src="app.js"></script>

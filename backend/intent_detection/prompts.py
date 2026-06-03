@@ -142,6 +142,24 @@ Examples:
   → execution_strategy: {{ "requires_tools": true, "requires_planning": false, "execution_mode": "tool_augmented" }}
   → capabilities: ["filesystem_access"]
 
+- "Create a text file, save it as 'TestingFile.txt' and create a folder called 'TestingFolder'. Save the file in the folder."
+  → intents: [
+      {{ "primary_intent": "actionable", "sub_intent": "create_folder" }},
+      {{ "primary_intent": "actionable", "sub_intent": "create_file" }}
+    ]
+  → is_multi_intent: true
+  → execution_strategy: {{ "requires_tools": true, "requires_planning": true, "execution_mode": "planner_required" }}
+  → capabilities: ["filesystem_access"]
+
+- "Create a folder called 'JamesFolder' on the Desktop and move the James text file in the Documents folder into it."
+  → intents: [
+      {{ "primary_intent": "actionable", "sub_intent": "create_folder" }},
+      {{ "primary_intent": "actionable", "sub_intent": "move" }}
+    ]
+  → is_multi_intent: true
+  → execution_strategy: {{ "requires_tools": true, "requires_planning": true, "execution_mode": "planner_required" }}
+  → capabilities: ["filesystem_access"]
+
 ========================================
 IMPORTANT CLASSIFICATION RULES
 ========================================
@@ -166,10 +184,18 @@ MUST be classified as: primary_intent="actionable", sub_intent="read_file" (if c
 Always extract file_name and path from the request.
 If file extension is missing from a file name, infer it from context or leave without extension.
 
-2. Intent != execution strategy
-3. Intent != capability
-4. Multi-intent is NOT a standalone intent category
-5. Interaction style is independent from intent
+4. CRITICAL: DOUBLE TASKS / MULTI-INTENT / DEPENDENT TASKS ALWAYS REQUIRE PLANNING
+- If a user request contains multiple tasks (e.g., "create a file AND a folder", "create a folder AND move a file inside it", "do research AND generate a PDF"), it is a double/dependent task.
+- For all double/dependent/multi-intent tasks:
+  → Set "is_multi_intent": true
+  → In "execution_strategy", set "requires_planning": true and "execution_mode": "planner_required"
+  → List all corresponding intents in the "intents" array.
+- This forces the system to invoke the Execution Planner so it can properly order the tasks (independent task first, then dependent task).
+
+5. Intent != execution strategy
+6. Intent != capability
+7. Multi-intent is NOT a standalone intent category
+8. Interaction style is independent from intent
 
 ========================================
 INTERACTION STYLE DETECTION

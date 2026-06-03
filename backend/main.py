@@ -1,6 +1,6 @@
 import os
-from dotenv import load_dotenv
-load_dotenv()
+from utils.env_loader import load_env
+load_env()
 
 # Performance Optimizations
 os.environ["OMP_NUM_THREADS"] = "4"

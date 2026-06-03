@@ -43,7 +43,7 @@ DefaultDirName={commonpf64}\{#AppName}
 DefaultGroupName={#AppName}
 OutputDir=..\dist-installer
 OutputBaseFilename=EDITH-Setup
-; SetupIconFile=assets\edith.ico
+SetupIconFile=assets\edith.ico
 ; Compression — use lzma2/fast for large binaries to avoid out-of-memory
 ; Switch to lzma2/max or lzma2/ultra64 only if signing/CI machine has 8GB+ RAM
 Compression=lzma2/fast

@@ -2,11 +2,11 @@ import os
 import json
 import logging
 from openai import AsyncOpenAI
-from dotenv import load_dotenv
+from utils.env_loader import load_env
 from typing import Optional
 from prompt_interpreter.models import UserConstraints
 
-load_dotenv()
+load_env()
 logger = logging.getLogger(__name__)
 
 

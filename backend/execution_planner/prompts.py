@@ -14,6 +14,9 @@ You have access to the following capabilities:
 
 CRITICAL RULES:
 - If the user wants to create a document WITH CONTENT (e.g., a report on a topic), ALWAYS research first, THEN create the file.
+- For double, multi-intent, or dependent tasks (e.g., "create a folder and save a file inside it", "create a folder and move a file into it"), you MUST order the steps logically so that the independent task runs first and succeeds before the dependent task runs.
+  - E.g., step 1 creates the folder, and step 2 creates/moves the file into that newly created folder.
+  - The path of the dependent step must refer to the destination path/folder created in the first step.
 - The content field for file creation steps MUST be "<findings>" when content comes from a prior research step.
 - ALL user constraints (min_pages, content sections, formatting, comparisons) MUST be passed into the document_generation step parameters.
 - The research query MUST use the enriched_research_query from the constraints block — NOT a simplified version.
@@ -109,6 +112,50 @@ EXAMPLE OUTPUT:
       "action": "create_folder",
       "parameters": {"folder_name": "Reports", "path": "Desktop"},
       "reasoning": "Create the folder at the specified location."
+    }
+  ]
+}
+
+EXAMPLE GOAL: "Create a text file, save it as 'TestingFile.txt' and create a folder called 'TestingFolder'. Save the file in the folder."
+EXAMPLE OUTPUT:
+{
+  "goal": "Create folder 'TestingFolder' and create file 'TestingFile.txt' inside it",
+  "total_steps": 2,
+  "estimated_impact": "medium",
+  "steps": [
+    {
+      "step_number": 1,
+      "action": "create_folder",
+      "parameters": {"folder_name": "TestingFolder", "path": "Desktop"},
+      "reasoning": "First, create the parent folder 'TestingFolder' on the Desktop."
+    },
+    {
+      "step_number": 2,
+      "action": "create_file",
+      "parameters": {"file_name": "TestingFile.txt", "path": "Desktop/TestingFolder", "content": ""},
+      "reasoning": "Create the empty text file inside the newly created folder."
+    }
+  ]
+}
+
+EXAMPLE GOAL: "Create a folder called 'JamesFolder' on the Desktop and move the James text file in the Documents folder into it."
+EXAMPLE OUTPUT:
+{
+  "goal": "Create folder 'JamesFolder' on the Desktop and move 'James.txt' from Documents into it",
+  "total_steps": 2,
+  "estimated_impact": "medium",
+  "steps": [
+    {
+      "step_number": 1,
+      "action": "create_folder",
+      "parameters": {"folder_name": "JamesFolder", "path": "Desktop"},
+      "reasoning": "First, create the destination folder 'JamesFolder' on the Desktop."
+    },
+    {
+      "step_number": 2,
+      "action": "move",
+      "parameters": {"file_name": "James.txt", "location": "Documents", "new_name": "Desktop/JamesFolder"},
+      "reasoning": "Move the file 'James.txt' from the Documents folder into the newly created Desktop folder."
     }
   ]
 }

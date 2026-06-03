@@ -1,8 +1,8 @@
 import os
 import json
 import logging
-from dotenv import load_dotenv
-load_dotenv()
+from utils.env_loader import load_env
+load_env()
 
 from openai import AsyncOpenAI
 from typing import Optional

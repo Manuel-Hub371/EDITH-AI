@@ -2,11 +2,11 @@ import os
 import json
 import logging
 from openai import AsyncOpenAI
-from dotenv import load_dotenv
+from utils.env_loader import load_env
 from intent_detection.models import IntentDetectionResponse
 from intent_detection.prompts import build_intent_prompt
 
-load_dotenv()
+load_env()
 
 logger = logging.getLogger(__name__)
 

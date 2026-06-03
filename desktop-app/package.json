@@ -10,7 +10,9 @@
   "build": {
     "appId": "com.edith.app",
     "productName": "EDITH",
+    "icon": "edith.png",
     "win": {
+      "icon": "edith.png",
       "target": [
         "portable"
       ]
