@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file:; connect-src 'self' http://localhost:8001;" />
-  <title>NovaGen - Next Generation AI Engineering</title>
+  <title>EDITH - Enhanced Development Interface for Technical Harmony</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="enhanced-additions.css" />
   <script src="marked.min.js"></script>
@@ -18,14 +18,7 @@
     <div class="custom-titlebar">
       <div class="titlebar-drag-region">
         <div class="titlebar-left">
-          <div class="titlebar-logo">
-            <svg width="16" height="16" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <polygon points="50,10 90,80 10,80" stroke="currentColor" stroke-width="3" fill="none" />
-              <text x="50" y="70" font-family="Arial, sans-serif" font-size="50" font-weight="bold" text-anchor="middle"
-                fill="currentColor">E</text>
-            </svg>
-          </div>
-          <span class="titlebar-title">NovaGen</span>
+          <span class="titlebar-title">EDITH</span>
           <div class="titlebar-menu">
             <div class="menu-item-wrapper">
               <span class="menu-item" id="menu-file">File</span>
@@ -213,6 +206,13 @@
                   </svg>
                   <span>Toggle Sidebar</span>
                   <span class="shortcut">Ctrl+B</span>
+                </div>
+                <div class="dropdown-item" data-action="toggle-ai-panel">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                  </svg>
+                  <span>Toggle AI Assistant</span>
+                  <span class="shortcut">Ctrl+Shift+A</span>
                 </div>
                 <div class="dropdown-item" data-action="toggle-terminal">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -407,6 +407,287 @@
       </div>
     </div>
 
+    <!-- Workspace Container - Two separate workspaces -->
+    <div class="workspace-container">
+      
+      <!-- Normal Mode Workspace - Syntrix-style Interface -->
+      <div class="normal-workspace" id="normal-workspace">
+        
+        <!-- Left Sidebar -->
+        <div class="normal-sidebar">
+          <div class="normal-sidebar-header">
+            <div class="normal-logo">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" stroke="url(#logoGradient)" stroke-width="2"/>
+                <path d="M12 2v20M2 12h20" stroke="url(#logoGradient)" stroke-width="1.5"/>
+                <defs>
+                  <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#8b5cf6"/>
+                    <stop offset="100%" style="stop-color:#06b6d4"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+              <span>EDITH</span>
+            </div>
+            <button class="normal-search-btn" title="Search">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+              </svg>
+            </button>
+          </div>
+          
+          <button class="normal-new-chat-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            <span>New Chat</span>
+          </button>
+          
+          <div class="normal-sidebar-section">
+            <div class="normal-section-title">FEATURES</div>
+            <button class="normal-sidebar-item">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="9" cy="9" r="2"/>
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+              </svg>
+              <span>Images</span>
+            </button>
+            <button class="normal-sidebar-item">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="23 7 16 12 23 17 23 7"/>
+                <rect x="1" y="5" width="15" height="14" rx="2"/>
+              </svg>
+              <span>Videos</span>
+            </button>
+            <button class="normal-sidebar-item">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+              </svg>
+              <span>Projects</span>
+            </button>
+          </div>
+          
+          <div class="normal-sidebar-section normal-chats-section">
+            <div class="normal-section-title">YOUR CHATS</div>
+            <div class="normal-chats-list" id="normal-chats-list">
+              <div class="normal-chat-item-wrapper">
+                <button class="normal-chat-item">Image Editing Request</button>
+                <button class="normal-chat-delete" title="Delete chat">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="normal-chat-item-wrapper">
+                <button class="normal-chat-item">Replace characters request</button>
+                <button class="normal-chat-delete" title="Delete chat">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="normal-chat-item-wrapper">
+                <button class="normal-chat-item">Shorten Notification Message</button>
+                <button class="normal-chat-delete" title="Delete chat">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="normal-chat-item-wrapper">
+                <button class="normal-chat-item">Image Concept Creation</button>
+                <button class="normal-chat-delete" title="Delete chat">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="normal-chat-item-wrapper">
+                <button class="normal-chat-item">Design Enhancement Guide</button>
+                <button class="normal-chat-delete" title="Delete chat">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="normal-main">
+          <!-- Top Navigation -->
+          <div class="normal-topnav">
+            <div class="normal-model-selector">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+              </svg>
+              <span>EDITH v4.2</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </div>
+            
+            <div class="normal-topnav-right">
+              <button class="normal-topnav-btn">Settings</button>
+              <button class="normal-profile-btn">
+                <div class="normal-avatar">U</div>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Welcome Content -->
+          <div class="normal-content" id="normal-content">
+            <div class="normal-welcome-state">
+              <div class="normal-orb">
+                <div class="normal-orb-inner"></div>
+                <div class="normal-orb-glow"></div>
+              </div>
+              <h2 class="normal-welcome-title">WELCOME BACK SIR</h2>
+              <p class="normal-welcome-subtitle">I am ready to assist you today sir</p>
+            </div>
+          </div>
+          
+          <!-- Input Area -->
+          <div class="normal-input-area">
+            <!-- Quick Action Cards -->
+            <div class="normal-quick-actions">
+              <button class="normal-action-card">
+                <div class="normal-card-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <circle cx="9" cy="9" r="2"/>
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                  </svg>
+                </div>
+                <div class="normal-card-content">
+                  <h4>Image Generator</h4>
+                  <p>Turn ideas into stunning visuals in seconds</p>
+                </div>
+                <svg class="normal-card-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M7 17L17 7M17 7H7M17 7v10"/>
+                </svg>
+              </button>
+              
+              <button class="normal-action-card">
+                <div class="normal-card-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="23 7 16 12 23 17 23 7"/>
+                    <rect x="1" y="5" width="15" height="14" rx="2"/>
+                  </svg>
+                </div>
+                <div class="normal-card-content">
+                  <h4>Video Generator</h4>
+                  <p>Create cinematic videos from simple prompts</p>
+                </div>
+                <svg class="normal-card-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M7 17L17 7M17 7H7M17 7v10"/>
+                </svg>
+              </button>
+              
+              <button class="normal-action-card">
+                <div class="normal-card-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="16 18 22 12 16 6"/>
+                    <polyline points="8 6 2 12 8 18"/>
+                  </svg>
+                </div>
+                <div class="normal-card-content">
+                  <h4>Dev Assistant</h4>
+                  <p>Accelerate development with intelligent assistance</p>
+                </div>
+                <svg class="normal-card-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M7 17L17 7M17 7H7M17 7v10"/>
+                </svg>
+              </button>
+            </div>
+            
+            <!-- Input Box -->
+            <div class="normal-input-container">
+              <div class="normal-input-wrapper-new">
+                <svg class="normal-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="M2 17l10 5 10-5"/>
+                </svg>
+                <input 
+                  type="text" 
+                  class="normal-main-input" 
+                  id="normal-main-input"
+                  placeholder="Ask me anything..."
+                />
+                <div class="normal-input-actions">
+                  <button class="normal-voice-btn" id="normal-voice-btn" title="Voice input">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                      <line x1="12" y1="19" x2="12" y2="23"/>
+                      <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                    <span>Voice</span>
+                  </button>
+                  
+                  <button class="normal-send-btn-new" id="normal-send-btn-new">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Mode Tabs -->
+            <div class="ai-mode-tabs">
+              <button class="ai-mode-tab active" id="tab-normal-mode" data-mode="normal">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                </svg>
+                <span>Normal</span>
+              </button>
+              <button class="ai-mode-tab" id="tab-agent-mode-1" data-mode="agent">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="16 18 22 12 16 6" />
+                  <polyline points="8 6 2 12 8 18" />
+                </svg>
+                <span>Agent Mode</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+      
+      <!-- Custom Dialog Modal -->
+      <div class="custom-dialog-overlay" id="custom-dialog-overlay">
+        <div class="custom-dialog">
+          <div class="custom-dialog-icon" id="dialog-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <h3 class="custom-dialog-title" id="dialog-title">Confirm Action</h3>
+          <p class="custom-dialog-message" id="dialog-message">Are you sure?</p>
+          <div class="custom-dialog-buttons">
+            <button class="custom-dialog-btn custom-dialog-cancel" id="dialog-cancel">Cancel</button>
+            <button class="custom-dialog-btn custom-dialog-confirm" id="dialog-confirm">Confirm</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Agent Mode Workspace - Full IDE -->
+      <div class="agent-workspace" id="agent-workspace" style="display: none;">
+
     <!-- Main IDE Container -->
     <div class="ide-container">
       <!-- Activity Bar -->
@@ -441,6 +722,11 @@
           </div>
         </div>
         <div class="activity-bar-bottom">
+          <div class="activity-icon" data-view="ai" title="AI Assistant">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+            </svg>
+          </div>
           <div class="activity-icon" data-view="settings" title="Settings">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="3" />
@@ -481,16 +767,118 @@
           </div>
         </div>
         <div class="sidebar-content">
-          <div class="no-folder-state" id="no-folder-state">
-            <div class="no-folder-icon">
-              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-              </svg>
+          <!-- Explorer View -->
+          <div class="sidebar-view" id="explorer-view">
+            <div class="no-folder-state" id="no-folder-state">
+              <div class="no-folder-icon">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                </svg>
+              </div>
+              <p class="no-folder-text">No folder opened</p>
+              <button class="open-folder-btn" id="open-folder-btn">Open Folder</button>
             </div>
-            <p class="no-folder-text">No folder opened</p>
-            <button class="open-folder-btn" id="open-folder-btn">Open Folder</button>
+            <div class="file-tree" id="file-tree"></div>
           </div>
-          <div class="file-tree" id="file-tree"></div>
+          
+          <!-- Search View -->
+          <div class="sidebar-view hidden" id="search-view">
+            <div class="search-input-container">
+              <input type="text" class="search-input" id="search-input" placeholder="Search in files..." />
+              <div class="search-options">
+                <button class="search-option-btn" title="Match Case">Aa</button>
+                <button class="search-option-btn" title="Match Whole Word">Ab|</button>
+                <button class="search-option-btn" title="Use Regular Expression">.*</button>
+              </div>
+            </div>
+            <div class="search-results" id="search-results">
+              <div class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+                <p>Search for files and text</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Git/Source Control View -->
+          <div class="sidebar-view hidden" id="git-view">
+            <div class="git-empty-state">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="18" cy="18" r="3" />
+                <circle cx="6" cy="6" r="3" />
+                <path d="M6 9v6" />
+                <path d="M13 6h3a2 2 0 0 1 2 2v7" />
+              </svg>
+              <p class="empty-state-text">No source control providers registered.</p>
+              <button class="primary-btn" id="init-repo-btn">Initialize Repository</button>
+            </div>
+            <div class="git-content hidden" id="git-content">
+              <div class="git-section">
+                <div class="git-section-header">
+                  <span>CHANGES</span>
+                  <span class="git-badge" id="changes-count">0</span>
+                </div>
+                <div class="git-changes" id="git-changes">
+                  <div class="empty-state-small">No changes</div>
+                </div>
+              </div>
+              <div class="git-section">
+                <div class="git-section-header">
+                  <span>STAGED CHANGES</span>
+                  <span class="git-badge" id="staged-count">0</span>
+                </div>
+                <div class="git-staged" id="git-staged">
+                  <div class="empty-state-small">No staged changes</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Extensions View -->
+          <div class="sidebar-view hidden" id="extensions-view">
+            <div class="extensions-search">
+              <input type="text" class="search-input" id="extensions-search" placeholder="Search extensions..." />
+            </div>
+            <div class="extensions-content">
+              <div class="extensions-section">
+                <div class="extensions-section-header">INSTALLED</div>
+                <div class="extensions-list" id="installed-extensions">
+                  <div class="empty-state">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="3" width="7" height="7" />
+                      <rect x="14" y="3" width="7" height="7" />
+                      <rect x="14" y="14" width="7" height="7" />
+                      <rect x="3" y="14" width="7" height="7" />
+                    </svg>
+                    <p>No extensions installed</p>
+                  </div>
+                </div>
+              </div>
+              <div class="extensions-section">
+                <div class="extensions-section-header">RECOMMENDED</div>
+                <div class="extensions-list" id="recommended-extensions">
+                  <div class="extension-item">
+                    <div class="extension-icon">🎨</div>
+                    <div class="extension-details">
+                      <div class="extension-name">Theme Pack</div>
+                      <div class="extension-description">Beautiful color themes</div>
+                    </div>
+                    <button class="extension-install-btn">Install</button>
+                  </div>
+                  <div class="extension-item">
+                    <div class="extension-icon">📝</div>
+                    <div class="extension-details">
+                      <div class="extension-name">Code Formatter</div>
+                      <div class="extension-description">Auto-format your code</div>
+                    </div>
+                    <button class="extension-install-btn">Install</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -500,21 +888,8 @@
         <div class="editor-container">
           <!-- Welcome Screen -->
           <div class="welcome-screen" id="welcome-screen">
-            <div class="welcome-logo">
-              <svg width="120" height="120" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="triangleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
-                  </linearGradient>
-                </defs>
-                <polygon points="50,10 90,80 10,80" stroke="url(#triangleGradient)" stroke-width="4" fill="none" />
-                <text x="50" y="70" font-family="Arial, sans-serif" font-size="50" font-weight="bold"
-                  text-anchor="middle" fill="url(#triangleGradient)">E</text>
-              </svg>
-            </div>
-            <h1 class="welcome-title">NovaGen</h1>
-            <p class="welcome-subtitle">Next-Generation AI Engineering</p>
+            <h1 class="welcome-title">EDITH</h1>
+            <p class="welcome-subtitle">Enhanced Development Interface for Technical Harmony</p>
 
             <div class="welcome-sections">
               <div class="welcome-section">
@@ -645,7 +1020,7 @@
           </div>
           <div class="panel-content">
             <div class="terminal" id="terminal">
-              <div class="terminal-line"><span class="terminal-prompt">NovaGen Terminal</span> - type "help" for commands
+              <div class="terminal-line"><span class="terminal-prompt">EDITH Terminal</span> - type "help" for commands
               </div>
               <div class="terminal-line">&nbsp;</div>
               <div class="terminal-input-line">
@@ -656,6 +1031,86 @@
           </div>
         </div>
       </div>
+
+      <!-- AI Assistant Panel (Right Side) -->
+      <div class="ai-panel" id="ai-panel">
+        <div class="ai-panel-header">
+          <div class="ai-panel-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+            </svg>
+            <span>AI Assistant</span>
+          </div>
+          <div class="ai-panel-actions">
+            <button class="ai-panel-action-btn" id="btn-clear-chat" title="Clear Chat">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="1 4 1 10 7 10" />
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+              </svg>
+            </button>
+            <button class="ai-panel-action-btn" id="btn-toggle-ai" title="Toggle AI Panel">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <div class="ai-chat-container" id="ai-chat-container">
+          <div class="ai-welcome-message">
+            <div class="ai-welcome-text">
+              <h3>Welcome to EDITH AI Assistant</h3>
+              <p>I can help you with:</p>
+              <ul>
+                <li>Code generation and refactoring</li>
+                <li>Debugging and error fixes</li>
+                <li>Explaining code concepts</li>
+                <li>Answering technical questions</li>
+              </ul>
+              <p class="ai-welcome-hint">Type your question below to get started!</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="ai-input-container">
+          <!-- AI Mode Tabs - Right above input box -->
+          <div class="ai-mode-tabs">
+            <button class="ai-mode-tab" id="tab-normal-mode-2" data-mode="normal">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              <span>Normal</span>
+            </button>
+            <button class="ai-mode-tab active" id="tab-agent-mode" data-mode="agent">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 18 22 12 16 6" />
+                <polyline points="8 6 2 12 8 18" />
+              </svg>
+              <span>Agent Mode</span>
+            </button>
+          </div>
+          
+          <div class="ai-input-wrapper">
+            <textarea 
+              class="ai-input" 
+              id="ai-input" 
+              placeholder="Ask me anything about your code..."
+              rows="1"
+            ></textarea>
+            <button class="ai-send-btn" id="ai-send-btn" title="Send (Ctrl+Enter)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            </button>
+          </div>
+          <div class="ai-input-hint">
+            <span>Press <kbd>Ctrl+Enter</kbd> to send • <kbd>Shift+Enter</kbd> for new line</span>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Status Bar -->
@@ -694,6 +1149,10 @@
       </div>
     </div>
   </div>
+  
+  </div> <!-- Close agent-workspace -->
+  </div> <!-- Close workspace-container -->
+  </div> <!-- Close app -->
 
   <script src="api.js"></script>
   <script src="app.js"></script>

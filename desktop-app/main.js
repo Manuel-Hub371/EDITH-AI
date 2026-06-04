@@ -157,7 +157,8 @@ ipcMain.handle('fs:create-folder', async (event, relPath) => {
   const absPath = path.isAbsolute(relPath) ? relPath : path.join(workspacePath, relPath);
   try {
     fs.mkdirSync(absPath, { recursive: true });
-    return { success: true };
+    const relativePath = path.relative(workspacePath, absPath).replace(/\\/g, '/');
+    return { success: true, path: relativePath, absPath };
   } catch (err) {
     console.error(`Error creating folder ${absPath}:`, err);
     throw err;
@@ -193,9 +194,30 @@ ipcMain.handle('fs:create-file', async (event, relPath) => {
   try {
     fs.mkdirSync(path.dirname(absPath), { recursive: true });
     fs.writeFileSync(absPath, '', 'utf8');
-    return { success: true, absPath };
+    // Return both absPath and path (relative) for compatibility
+    const relativePath = workspacePath ? path.relative(workspacePath, absPath).replace(/\\/g, '/') : absPath;
+    return { success: true, path: relativePath, absPath };
   } catch (err) {
     console.error(`Error creating file ${absPath}:`, err);
+    throw err;
+  }
+});
+
+ipcMain.handle('fs:delete', async (event, relPath) => {
+  if (!workspacePath && !path.isAbsolute(relPath)) throw new Error('No workspace folder is open');
+  const absPath = path.isAbsolute(relPath) ? relPath : path.join(workspacePath, relPath);
+  try {
+    const stat = fs.statSync(absPath);
+    if (stat.isDirectory()) {
+      // Delete directory recursively
+      fs.rmSync(absPath, { recursive: true, force: true });
+    } else {
+      // Delete file
+      fs.unlinkSync(absPath);
+    }
+    return { success: true, path: relPath };
+  } catch (err) {
+    console.error(`Error deleting ${absPath}:`, err);
     throw err;
   }
 });

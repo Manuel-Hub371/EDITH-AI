@@ -1,5 +1,5 @@
 /* ============================================================
-   NovaGen IDE - Enhanced Design Additions
+   EDITH IDE - Enhanced Design Additions
    Apply these enhancements to make the design tighter and more vibrant
    ============================================================ */
 
@@ -85,9 +85,10 @@
 /* Enhanced Activity Bar - Extra Compact */
 .activity-bar {
   width: 36px !important;
-  background: linear-gradient(180deg, var(--bg-dark) 0%, var(--bg-darkest) 100%) !important;
+  background: rgba(10, 14, 26, 0.95) !important;
   border-right: 1px solid rgba(139, 92, 246, 0.15) !important;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(10px) !important;
 }
 
 .activity-bar-top,
@@ -131,14 +132,15 @@
 /* Enhanced Sidebar - Adjusted for smaller activity bar */
 .sidebar {
   width: 220px !important;
-  background: var(--bg-primary) !important;
+  background: rgba(10, 14, 26, 0.8) !important;
   border-right: 1px solid rgba(139, 92, 246, 0.1) !important;
+  backdrop-filter: blur(10px) !important;
 }
 
 .sidebar-header {
   height: 32px !important;
   padding: 0 10px !important;
-  background: var(--bg-secondary) !important;
+  background: rgba(26, 31, 46, 0.6) !important;
   border-bottom: 1px solid rgba(139, 92, 246, 0.15) !important;
 }
 
@@ -179,8 +181,9 @@
 .editor-tabs {
   height: 32px !important;
   padding: 0 6px !important;
-  background: var(--bg-dark) !important;
+  background: rgba(10, 14, 26, 0.8) !important;
   border-bottom: 1px solid rgba(139, 92, 246, 0.15) !important;
+  backdrop-filter: blur(10px) !important;
 }
 
 .tab {
@@ -192,7 +195,7 @@
 }
 
 .tab.active {
-  background: var(--bg-darkest) !important;
+  background: rgba(139, 92, 246, 0.2) !important;
   border-bottom: 2px solid var(--accent-purple-light) !important;
   box-shadow: 0 0 10px rgba(139, 92, 246, 0.3) !important;
 }
@@ -206,15 +209,17 @@
 /* Enhanced Terminal */
 .bottom-panel {
   height: 180px !important;
-  background: var(--bg-dark) !important;
+  background: rgba(10, 14, 26, 0.9) !important;
   border-top: 1px solid rgba(139, 92, 246, 0.2) !important;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(10px) !important;
 }
 
 .panel-header {
   height: 32px !important;
   padding: 0 10px !important;
-  background: var(--bg-secondary) !important;
+  background: rgba(26, 31, 46, 0.6) !important;
+  border-bottom: 1px solid rgba(139, 92, 246, 0.15) !important;
 }
 
 .panel-tab {
@@ -293,40 +298,40 @@
   text-shadow: 0 0 8px rgba(139, 92, 246, 0.5) !important;
 }
 
-/* Enhanced Search Bar - Extra Compact */
+/* Enhanced Search Bar - Larger Size */
 .titlebar-search {
-  height: 18px !important;
+  height: 28px !important;
   background: var(--bg-secondary) !important;
   border: 1px solid rgba(139, 92, 246, 0.2) !important;
-  border-radius: 3px !important;
-  padding: 0 6px !important;
-  gap: 4px !important;
-  min-width: 140px !important;
-  max-width: 200px !important;
+  border-radius: 4px !important;
+  padding: 0 12px !important;
+  gap: 8px !important;
+  min-width: 200px !important;
+  max-width: 600px !important;
 }
 
 .titlebar-search:focus-within {
   border-color: var(--accent-purple-light) !important;
-  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.2), 0 0 8px rgba(139, 92, 246, 0.3) !important;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2), 0 0 12px rgba(139, 92, 246, 0.4) !important;
   background: var(--bg-tertiary) !important;
 }
 
 .titlebar-search input {
-  font-size: 10px !important;
-  line-height: 1.2 !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
 }
 
 .titlebar-search svg {
-  width: 12px !important;
-  height: 12px !important;
+  width: 16px !important;
+  height: 16px !important;
 }
 
 .search-shortcut {
-  font-size: 8px !important;
-  padding: 1px 4px !important;
+  font-size: 11px !important;
+  padding: 2px 6px !important;
   background: rgba(139, 92, 246, 0.2) !important;
   border: 1px solid rgba(139, 92, 246, 0.3) !important;
-  border-radius: 2px !important;
+  border-radius: 3px !important;
   line-height: 1.2 !important;
 }
 
@@ -365,17 +370,19 @@ h3 {
 
 /* Enhanced code editor */
 .code-editor {
-  font-size: 14px !important;
-  line-height: 22px !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
   padding: 16px !important;
   font-weight: 400 !important;
   letter-spacing: 0.2px !important;
+  color: transparent !important;
+  -webkit-text-fill-color: transparent !important;
 }
 
 .line-numbers {
-  padding: 16px 10px !important;
-  font-size: 12px !important;
-  line-height: 22px !important;
+  padding: 16px 8px !important;
+  font-size: 11px !important;
+  line-height: 18px !important;
   font-weight: 400 !important;
 }
 

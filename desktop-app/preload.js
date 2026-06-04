@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   writeFile: (relPath, content) => ipcRenderer.invoke('fs:write-file', { relPath, content }),
   createFile: (relPath) => ipcRenderer.invoke('fs:create-file', relPath),
   createFolder: (relPath) => ipcRenderer.invoke('fs:create-folder', relPath),
+  deleteItem: (relPath) => ipcRenderer.invoke('fs:delete', relPath),
   selectFolder: () => ipcRenderer.invoke('workspace:select-folder'),
   closeFolder: () => ipcRenderer.invoke('workspace:close-folder'),
 
