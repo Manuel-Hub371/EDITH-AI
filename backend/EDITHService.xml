@@ -1,7 +1,10 @@
 <service>
   <id>EDITH_Backend</id>
-  <name>EDITH Backend Service</name>
-  <description>FastAPI backend for EDITH AI Assistant</description>
+  <name>EDITH AI</name>
+  <description>Backend for EDITH</description>
   <executable>%BASE%\edith-backend.exe</executable>
   <logmode>rotate</logmode>
+  <onfailure action="restart" delay="10 sec" />
+  <onfailure action="restart" delay="30 sec" />
+  <onfailure action="restart" delay="60 sec" />
 </service>
