@@ -450,6 +450,7 @@ a {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .sidebar.hidden {
@@ -468,7 +469,7 @@ a {
 
 .sidebar-title {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-secondary);
   letter-spacing: 0.5px;
 }
@@ -502,6 +503,7 @@ a {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 16px 0;
+  min-height: 0;
 }
 
 /* No Folder State */
@@ -557,6 +559,8 @@ a {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0;
+  min-width: 0;
 }
 
 .editor-container {
@@ -564,6 +568,10 @@ a {
   background: var(--bg-darkest);
   overflow: hidden;
   position: relative;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Welcome Screen */
@@ -596,7 +604,7 @@ a {
 
 .welcome-title {
   font-size: 48px;
-  font-weight: 700;
+  font-weight: 600;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -620,7 +628,7 @@ a {
 
 .welcome-section h3 {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-muted);
   letter-spacing: 0.5px;
   margin-bottom: 12px;
@@ -663,14 +671,35 @@ a {
   padding: 0 8px;
   gap: 2px;
   overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  position: relative;
+  flex-shrink: 0;
+  scrollbar-width: thin;
 }
 
+/* Custom scrollbar for tabs */
 .editor-tabs::-webkit-scrollbar {
-  height: 0;
+  height: 4px;
+}
+
+.editor-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.editor-tabs::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 2px;
+}
+
+.editor-tabs::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.5);
 }
 
 .tab {
   height: 28px;
+  min-width: 120px;
+  max-width: 200px;
   padding: 0 12px;
   background: transparent;
   border: none;
@@ -685,6 +714,15 @@ a {
   user-select: none;
   position: relative;
   flex-shrink: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.tab-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tab:hover {
@@ -693,9 +731,13 @@ a {
 }
 
 .tab.active {
-  background: var(--bg-darkest);
+  background: rgba(139, 92, 246, 0.25);
   color: var(--text-primary);
-  border-bottom: 2px solid var(--accent-purple-light);
+  border-bottom: 3px solid var(--accent-purple-light);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.4);
+  font-weight: 500;
+  position: relative;
+  z-index: 1;
 }
 
 .tab-name {
@@ -769,6 +811,10 @@ a {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  min-height: 100px;
+  max-height: 80vh;
+  overflow: hidden;
+  position: relative;
 }
 
 .panel-header {
@@ -845,6 +891,7 @@ a {
   flex: 1;
   overflow: auto;
   padding: 12px;
+  min-height: 0;
 }
 
 /* Terminal */
@@ -1068,6 +1115,9 @@ a {
   width: 100%;
   background: var(--bg-darkest);
   overflow: hidden;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
 }
 
 /* Editor Toolbar/Breadcrumb Bar */
@@ -1134,6 +1184,8 @@ a {
   overflow: hidden;
   background: var(--bg-darkest);
   position: relative;
+  min-height: 0;
+  min-width: 0;
 }
 
 /* Editor Gutter (Line Numbers + Decorations) */
@@ -1172,7 +1224,33 @@ a {
   flex-direction: column;
   overflow: auto;
   position: relative;
-  background: var(--bg-darkest);
+  background: #1e1e1e;
+  /* Remove any blur effects */
+}
+
+/* Custom Scrollbars for Editor - Place on right edge */
+.editor-content-wrapper::-webkit-scrollbar {
+  width: 14px;
+  height: 14px;
+}
+
+.editor-content-wrapper::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+
+.editor-content-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 7px;
+  border: 3px solid var(--bg-dark);
+}
+
+.editor-content-wrapper::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-purple);
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.5);
+}
+
+.editor-content-wrapper::-webkit-scrollbar-corner {
+  background: var(--bg-dark);
 }
 
 /* Syntax Highlighting Layer */
@@ -1184,16 +1262,19 @@ a {
   bottom: 0;
   padding: 16px;
   margin: 0;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--text-primary);
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 20px;
+  color: #cccccc;
   white-space: pre;
   word-wrap: normal;
   overflow-wrap: normal;
   pointer-events: none;
   z-index: 1;
   overflow: hidden;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Code Editor Textarea */
@@ -1207,81 +1288,97 @@ a {
   outline: none;
   resize: none;
   padding: 16px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  line-height: 18px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 20px;
   tab-size: 4;
   white-space: pre;
   word-wrap: normal;
   overflow-wrap: normal;
   caret-color: var(--accent-purple-light);
-  caret-shape: bar;
-  caret-width: 2px;
   position: relative;
   z-index: 2;
   -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Syntax Highlighting Colors - VS Code Dark+ Theme */
+/* Syntax Highlighting Colors - VS Code Dark+ Theme with proper contrast */
 .syntax-highlight .keyword {
-  color: #c586c0;
+  color: #569cd6;
+  font-weight: normal;
 }
 
 .syntax-highlight .string {
   color: #ce9178;
+  font-weight: normal;
 }
 
 .syntax-highlight .comment {
   color: #6a9955;
   font-style: italic;
+  font-weight: normal;
 }
 
 .syntax-highlight .number {
   color: #b5cea8;
+  font-weight: normal;
 }
 
 .syntax-highlight .function {
   color: #dcdcaa;
+  font-weight: normal;
 }
 
 .syntax-highlight .class-name {
   color: #4ec9b0;
+  font-weight: normal;
 }
 
 .syntax-highlight .operator {
   color: #d4d4d4;
+  font-weight: normal;
 }
 
 .syntax-highlight .punctuation {
   color: #d4d4d4;
+  font-weight: normal;
 }
 
 .syntax-highlight .tag {
   color: #569cd6;
+  font-weight: normal;
 }
 
 .syntax-highlight .attribute {
   color: #9cdcfe;
+  font-weight: normal;
 }
 
 .syntax-highlight .property {
   color: #9cdcfe;
+  font-weight: normal;
 }
 
 .syntax-highlight .variable {
   color: #9cdcfe;
+  font-weight: normal;
 }
 
 .syntax-highlight .constant {
   color: #4fc1ff;
+  font-weight: normal;
 }
 
 .syntax-highlight .boolean {
   color: #569cd6;
+  font-weight: normal;
 }
 
 .syntax-highlight .null {
   color: #569cd6;
+  font-weight: normal;
 }
 
 .code-editor::placeholder {
@@ -1292,7 +1389,7 @@ a {
 
 .code-editor::selection {
   background: rgba(139, 92, 246, 0.3);
-  -webkit-text-fill-color: transparent;
+  color: var(--text-primary);
 }
 
 .code-editor:focus {
@@ -1325,14 +1422,59 @@ a {
 
 /* Minimap */
 .editor-minimap {
-  width: 100px;
-  background: var(--bg-dark);
-  border-left: 1px solid var(--border-subtle);
+  width: 120px;
+  background: #1a1d29;
+  border-left: 1px solid rgba(139, 92, 246, 0.2);
   flex-shrink: 0;
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  cursor: pointer;
+}
+
+.editor-minimap:hover {
+  background: #1e2230;
+}
+
+.minimap-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 4px;
+  overflow: hidden;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 3px;
+  line-height: 4px;
+  color: #858585;
+  white-space: pre;
+  pointer-events: none;
+  letter-spacing: 0;
+}
+
+.minimap-line {
+  height: 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
+  opacity: 0.8;
+}
+
+.minimap-line.empty {
+  opacity: 0.15;
+}
+
+.minimap-line.comment-line {
+  color: #6a9955;
+  opacity: 0.6;
+}
+
+.minimap-line.declaration-line {
+  color: #569cd6;
+  opacity: 0.9;
+  font-weight: bold;
 }
 
 .minimap-slider {
@@ -1340,11 +1482,14 @@ a {
   top: 0;
   left: 0;
   right: 0;
-  height: 60px;
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  height: 80px;
+  background: rgba(139, 92, 246, 0.25);
+  border: 2px solid rgba(139, 92, 246, 0.6);
   pointer-events: none;
   transition: all 0.1s ease;
+  border-radius: 3px;
+  z-index: 10;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.4), inset 0 0 8px rgba(139, 92, 246, 0.2);
 }
 
 /* Minimap content placeholder */
@@ -1360,95 +1505,7 @@ a {
   opacity: 0.3;
 }
 
-/* Enhanced Editor Tabs */
-.editor-tabs {
-  height: 32px !important;
-  padding: 0 6px !important;
-  background: var(--bg-dark) !important;
-  border-bottom: 1px solid rgba(139, 92, 246, 0.15) !important;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  overflow-x: auto;
-}
-
-.editor-tabs::-webkit-scrollbar {
-  height: 0;
-}
-
-.tab {
-  height: 28px !important;
-  padding: 0 12px !important;
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 12px !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  cursor: pointer;
-  border-radius: 4px 4px 0 0 !important;
-  transition: all 0.15s;
-  user-select: none;
-  position: relative;
-  flex-shrink: 0;
-  margin: 0 1px !important;
-  border-bottom: 2px solid transparent !important;
-}
-
-.tab:hover {
-  background: rgba(139, 92, 246, 0.1) !important;
-  color: var(--text-primary);
-}
-
-.tab.active {
-  background: var(--bg-darkest) !important;
-  color: var(--text-primary) !important;
-  border-bottom: 2px solid var(--accent-purple-light) !important;
-  box-shadow: 0 0 10px rgba(139, 92, 246, 0.2) !important;
-  font-weight: 500;
-}
-
-.tab-name {
-  font-size: 12px !important;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 150px;
-}
-
-.tab-close {
-  width: 16px !important;
-  height: 16px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  border-radius: 3px !important;
-  font-size: 16px !important;
-  line-height: 1 !important;
-  color: var(--text-muted) !important;
-  transition: all 0.15s !important;
-  margin-left: 4px !important;
-  opacity: 0.7;
-}
-
-.tab:hover .tab-close {
-  opacity: 1;
-}
-
-.tab-close:hover {
-  background: rgba(139, 92, 246, 0.2) !important;
-  color: var(--accent-purple-light) !important;
-}
-
-.tab.active .tab-close {
-  color: var(--text-primary) !important;
-  opacity: 1;
-}
-
-.tab.dirty .tab-close {
-  color: var(--accent-orange) !important;
-}
+/* Enhanced Editor Tabs - See enhanced-additions.css for final overrides */
 
 /* Scrollbar for file tree */
 .file-tree::-webkit-scrollbar {
@@ -1981,7 +2038,7 @@ a {
   position: absolute;
   left: 0;
   color: var(--accent-purple-light);
-  font-weight: bold;
+  font-weight: 500;
 }
 
 .ai-welcome-hint {
@@ -2430,7 +2487,7 @@ a {
   align-items: center;
   justify-content: space-between;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-secondary);
   letter-spacing: 0.5px;
 }
@@ -2467,7 +2524,7 @@ a {
 
 .git-file-status {
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   padding: 2px 6px;
   border-radius: 3px;
   font-family: var(--font-mono);
@@ -2516,7 +2573,7 @@ a {
 
 .extensions-section-header {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--text-secondary);
   letter-spacing: 0.5px;
   margin-bottom: 12px;
@@ -2662,7 +2719,7 @@ a {
   align-items: center;
   gap: 10px;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
@@ -2714,7 +2771,7 @@ a {
 
 .normal-section-title {
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 1px;
   color: var(--text-dim);
   margin-bottom: 12px;
@@ -3004,7 +3061,7 @@ a {
 
 .normal-welcome-title {
   font-size: 28px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 4px;
   color: var(--text-dim);
   margin-bottom: 12px;
@@ -3268,7 +3325,7 @@ a {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 16px;
   position: relative;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -3475,25 +3532,10 @@ a {
   background: transparent;
 }
 
-.editor-tabs {
-  background: rgba(10, 14, 26, 0.8);
-  border-bottom: 1px solid rgba(139, 92, 246, 0.15);
-  backdrop-filter: blur(10px);
-}
+/* Agent Mode workspace glassmorphism - See enhanced-additions.css for final overrides */
 
-.tab.active {
-  background: rgba(139, 92, 246, 0.2);
-  border-bottom: 2px solid var(--accent-purple-light);
-}
 
-.editor-container {
-  background: transparent;
-}
-
-.code-editor {
-  background: rgba(10, 14, 26, 0.5);
-  backdrop-filter: blur(5px);
-}
+/* Code editor overrides removed - see main styles */
 
 /* Welcome Screen in IDE */
 .welcome-screen {
@@ -3624,7 +3666,7 @@ a {
 
 .custom-dialog-title {
   font-size: 22px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 12px;
 }

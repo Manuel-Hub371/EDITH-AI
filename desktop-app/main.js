@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, dialog, screen } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, dialog, screen, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -283,51 +283,94 @@ ipcMain.on('window:close', () => {
 // Run File IPC — spawns the file in a child process, streams stdout/stderr live
 let runProcess = null;
 
-ipcMain.handle('run:file', (event, { filePath, command }) => {
+ipcMain.handle('run:file', (event, { command, args, cwd, filePath }) => {
   // Kill any existing run process
   if (runProcess) {
     try { runProcess.kill('SIGTERM'); } catch (e) { }
     runProcess = null;
   }
 
-  // Normalise path separators for Windows
-  const absPath = filePath.replace(/\//g, path.sep);
-  const workDir = path.dirname(absPath);
+  // Determine working directory
+  let workDir = cwd;
+  if (!workDir && filePath) {
+    workDir = path.dirname(filePath.replace(/\//g, path.sep));
+  }
+  if (!workDir) {
+    workDir = workspacePath || process.cwd();
+  }
 
-  runProcess = spawn(command, [], {
-    cwd: workDir,
-    shell: true,
-    env: { ...process.env }
-  });
+  console.log(`Running: ${command} ${(args || []).join(' ')} in ${workDir}`);
 
-  runProcess.stdout.on('data', (data) => {
-    if (mainWindow) mainWindow.webContents.send('run:output', { type: 'stdout', text: data.toString() });
-  });
+  try {
+    runProcess = spawn(command, args || [], {
+      cwd: workDir,
+      shell: true,
+      env: { ...process.env }
+    });
 
-  runProcess.stderr.on('data', (data) => {
-    if (mainWindow) mainWindow.webContents.send('run:output', { type: 'stderr', text: data.toString() });
-  });
+    runProcess.stdout.on('data', (data) => {
+      if (mainWindow) mainWindow.webContents.send('run:output', { type: 'stdout', data: data.toString() });
+    });
 
-  runProcess.on('close', (code) => {
-    if (mainWindow) mainWindow.webContents.send('run:output', { type: 'exit', code });
-    runProcess = null;
-  });
+    runProcess.stderr.on('data', (data) => {
+      if (mainWindow) mainWindow.webContents.send('run:output', { type: 'stderr', data: data.toString() });
+    });
 
-  runProcess.on('error', (err) => {
-    if (mainWindow) mainWindow.webContents.send('run:output', { type: 'stderr', text: 'Error: ' + err.message + '\n' });
-    runProcess = null;
-  });
+    runProcess.on('close', (code) => {
+      if (mainWindow) mainWindow.webContents.send('run:output', { type: 'exit', code });
+      runProcess = null;
+    });
 
-  return { started: true };
+    runProcess.on('error', (err) => {
+      if (mainWindow) mainWindow.webContents.send('run:output', { type: 'error', message: err.message });
+      runProcess = null;
+    });
+
+    return { started: true };
+  } catch (error) {
+    console.error('Failed to start process:', error);
+    return { started: false, error: error.message };
+  }
 });
 
 ipcMain.handle('run:kill', () => {
   if (runProcess) {
-    try { runProcess.kill('SIGTERM'); } catch (e) { }
-    runProcess = null;
-    return { killed: true };
+    try { 
+      runProcess.kill('SIGTERM'); 
+      runProcess = null;
+      return { killed: true };
+    } catch (e) { 
+      return { killed: false, error: e.message };
+    }
   }
-  return { killed: false };
+  return { killed: false, message: 'No process running' };
+});
+
+// Open file in external application (browser for HTML)
+ipcMain.handle('file:open-external', async (event, filePath) => {
+  try {
+    // Resolve to absolute path if needed
+    let absolutePath = filePath;
+    if (!path.isAbsolute(filePath)) {
+      absolutePath = path.join(workspacePath || process.cwd(), filePath);
+    }
+    
+    // Ensure the file exists
+    if (!fs.existsSync(absolutePath)) {
+      throw new Error(`File not found: ${absolutePath}`);
+    }
+    
+    // Convert to file:// URL for proper browser opening
+    const fileUrl = `file://${absolutePath.replace(/\\/g, '/')}`;
+    
+    console.log(`Opening in browser: ${fileUrl}`);
+    await shell.openExternal(fileUrl);
+    
+    return { success: true, path: absolutePath };
+  } catch (error) {
+    console.error('Failed to open file:', error);
+    return { success: false, error: error.message };
+  }
 });
 
 // System Info IPC handler — returns live CPU, RAM, uptime, platform

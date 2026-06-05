@@ -32,6 +32,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onRunOutput: (callback) => ipcRenderer.on('run:output', (event, data) => callback(data)),
   offRunOutput: () => ipcRenderer.removeAllListeners('run:output'),
 
+  // Open in browser or external application
+  openInBrowser: (filePath) => ipcRenderer.invoke('file:open-external', filePath),
+
   // Window controls
   minimizeWindow: () => ipcRenderer.send('window:minimize'),
   maximizeWindow: () => ipcRenderer.send('window:maximize'),

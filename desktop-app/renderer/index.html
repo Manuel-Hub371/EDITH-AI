@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file:; connect-src 'self' http://localhost:8001;" />
+    content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: file:; connect-src 'self' http://localhost:8001 http://127.0.0.1:8001;" />
   <title>EDITH - Enhanced Development Interface for Technical Harmony</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="enhanced-additions.css" />
@@ -473,50 +473,9 @@
           <div class="normal-sidebar-section normal-chats-section">
             <div class="normal-section-title">YOUR CHATS</div>
             <div class="normal-chats-list" id="normal-chats-list">
-              <div class="normal-chat-item-wrapper">
-                <button class="normal-chat-item">Image Editing Request</button>
-                <button class="normal-chat-delete" title="Delete chat">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                  </svg>
-                </button>
-              </div>
-              <div class="normal-chat-item-wrapper">
-                <button class="normal-chat-item">Replace characters request</button>
-                <button class="normal-chat-delete" title="Delete chat">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                  </svg>
-                </button>
-              </div>
-              <div class="normal-chat-item-wrapper">
-                <button class="normal-chat-item">Shorten Notification Message</button>
-                <button class="normal-chat-delete" title="Delete chat">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                  </svg>
-                </button>
-              </div>
-              <div class="normal-chat-item-wrapper">
-                <button class="normal-chat-item">Image Concept Creation</button>
-                <button class="normal-chat-delete" title="Delete chat">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                  </svg>
-                </button>
-              </div>
-              <div class="normal-chat-item-wrapper">
-                <button class="normal-chat-item">Design Enhancement Guide</button>
-                <button class="normal-chat-delete" title="Delete chat">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"/>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                  </svg>
-                </button>
+              <!-- Chat items will be dynamically populated here -->
+              <div class="empty-state-small" style="padding: 20px; text-align: center; color: rgba(255,255,255,0.4); font-size: 13px;">
+                No chats yet. Start a new conversation!
               </div>
             </div>
           </div>

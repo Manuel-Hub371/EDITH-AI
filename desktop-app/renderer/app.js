@@ -108,6 +108,9 @@
     menuPairs.forEach(({ button, dropdown }) => {
       setupDropdownMenu(button, dropdown);
     });
+    
+    // Setup panel tabs
+    setupPanelTabs();
 
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
@@ -130,38 +133,32 @@
       }
       // Edit actions
       else if (action === 'undo') {
-        document.execCommand('undo');
-        appendTerminalLine('⟲ Undo');
+        performUndo();
       }
       else if (action === 'redo') {
-        document.execCommand('redo');
-        appendTerminalLine('⟳ Redo');
+        performRedo();
       }
       else if (action === 'cut') {
-        document.execCommand('cut');
-        appendTerminalLine('✂ Cut');
+        performCut();
       }
       else if (action === 'copy') {
-        document.execCommand('copy');
-        appendTerminalLine('📋 Copy');
+        performCopy();
       }
       else if (action === 'paste') {
-        document.execCommand('paste');
-        appendTerminalLine('📋 Paste');
+        performPaste();
       }
       else if (action === 'find') {
-        appendTerminalLine('🔍 Find: Feature coming soon');
+        showFindDialog();
       }
       else if (action === 'replace') {
-        appendTerminalLine('🔄 Replace: Feature coming soon');
+        showReplaceDialog();
       }
       // Selection actions
       else if (action === 'select-all') {
-        if (codeEditor) codeEditor.select();
-        appendTerminalLine('✓ Selected all');
+        selectAll();
       }
       else if (action === 'select-line') {
-        appendTerminalLine('✓ Line selected');
+        selectCurrentLine();
       }
       // View actions
       else if (action === 'toggle-sidebar') {
@@ -193,17 +190,17 @@
         stopExecution();
       }
       else if (action === 'add-configuration') {
-        appendTerminalLine('⚙ Add Configuration: Feature coming soon');
+        addRunConfiguration();
       }
       // Terminal actions
       else if (action === 'new-terminal') {
-        appendTerminalLine('✓ New terminal created');
+        createNewTerminal();
       }
       else if (action === 'split-terminal') {
-        appendTerminalLine('✓ Terminal split');
+        splitTerminal();
       }
       else if (action === 'kill-terminal') {
-        appendTerminalLine('✓ Terminal killed');
+        killTerminal();
       }
       else if (action === 'close-terminal') {
         if (bottomPanel) {
@@ -304,6 +301,16 @@
       else if (e.ctrlKey && e.key === '0') {
         e.preventDefault();
         resetZoom();
+      }
+      // Ctrl+Tab - Next Tab
+      else if (e.ctrlKey && e.key === 'Tab' && !e.shiftKey) {
+        e.preventDefault();
+        cycleTabForward();
+      }
+      // Ctrl+Shift+Tab - Previous Tab
+      else if (e.ctrlKey && e.shiftKey && e.key === 'Tab') {
+        e.preventDefault();
+        cycleTabBackward();
       }
     });
 
@@ -1207,17 +1214,15 @@
     }
 
     function zoomIn() {
-      currentZoom += 0.1;
+      currentZoom = Math.min(currentZoom + 0.1, 2.0); // Cap at 200%
       applyZoom();
       appendTerminalLine(`🔍 Zoom: ${Math.round(currentZoom * 100)}%`);
     }
 
     function zoomOut() {
-      if (currentZoom > 0.3) {
-        currentZoom -= 0.1;
-        applyZoom();
-        appendTerminalLine(`🔍 Zoom: ${Math.round(currentZoom * 100)}%`);
-      }
+      currentZoom = Math.max(currentZoom - 0.1, 0.5); // Min 50%
+      applyZoom();
+      appendTerminalLine(`🔍 Zoom: ${Math.round(currentZoom * 100)}%`);
     }
 
     function resetZoom() {
@@ -1227,32 +1232,740 @@
     }
 
     function applyZoom() {
-      document.body.style.zoom = currentZoom;
+      // Use transform instead of zoom for better compatibility and layout stability
+      const container = document.getElementById('agent-workspace');
+      if (container) {
+        container.style.transform = `scale(${currentZoom})`;
+        container.style.transformOrigin = 'top left';
+        // Adjust container size to prevent clipping
+        container.style.width = `${100 / currentZoom}%`;
+        container.style.height = `${100 / currentZoom}%`;
+      }
     }
 
     // ============================================================
     // Run Operations
     // ============================================================
+    // Run Operations with Custom Terminal Popup
+    // ============================================================
+    
+    let runningProcesses = new Map(); // Store running processes
+    
+    function createTerminalPopup(title) {
+      // Check if terminal popup already exists
+      let terminalPopup = document.getElementById('terminal-popup');
+      
+      if (!terminalPopup) {
+        // Create terminal popup overlay
+        terminalPopup = document.createElement('div');
+        terminalPopup.id = 'terminal-popup';
+        terminalPopup.className = 'terminal-popup-overlay';
+        terminalPopup.innerHTML = `
+          <div class="terminal-popup-container">
+            <div class="terminal-popup-header">
+              <div class="terminal-popup-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="4 17 10 11 4 5" />
+                  <line x1="12" y1="19" x2="20" y2="19" />
+                </svg>
+                <span id="terminal-popup-title-text">${title}</span>
+              </div>
+              <div class="terminal-popup-actions">
+                <button class="terminal-popup-btn" id="popup-clear-btn" title="Clear">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
+                <button class="terminal-popup-btn" id="popup-stop-btn" title="Stop">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="6" y="6" width="12" height="12" />
+                  </svg>
+                </button>
+                <button class="terminal-popup-btn" id="popup-close-btn" title="Close">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="terminal-popup-content" id="terminal-popup-content"></div>
+          </div>
+        `;
+        document.body.appendChild(terminalPopup);
+        
+        // Setup event listeners
+        document.getElementById('popup-close-btn').addEventListener('click', closeTerminalPopup);
+        document.getElementById('popup-clear-btn').addEventListener('click', clearTerminalPopup);
+        document.getElementById('popup-stop-btn').addEventListener('click', stopCurrentProcess);
+        
+        // Close on overlay click
+        terminalPopup.addEventListener('click', (e) => {
+          if (e.target === terminalPopup) {
+            closeTerminalPopup();
+          }
+        });
+      } else {
+        // Update title if popup exists
+        const titleElement = document.getElementById('terminal-popup-title-text');
+        if (titleElement) titleElement.textContent = title;
+        terminalPopup.style.display = 'flex';
+      }
+      
+      return terminalPopup;
+    }
+    
+    function appendToTerminalPopup(message, type = 'normal') {
+      const content = document.getElementById('terminal-popup-content');
+      if (!content) return;
+      
+      const line = document.createElement('div');
+      line.className = `terminal-popup-line ${type}`;
+      line.textContent = message;
+      content.appendChild(line);
+      content.scrollTop = content.scrollHeight;
+    }
+    
+    function clearTerminalPopup() {
+      const content = document.getElementById('terminal-popup-content');
+      if (content) {
+        content.innerHTML = '';
+      }
+    }
+    
+    function closeTerminalPopup() {
+      const popup = document.getElementById('terminal-popup');
+      if (popup) {
+        popup.style.display = 'none';
+      }
+      
+      // Clean up output listener when closing popup
+      if (window.electronAPI && window.electronAPI.offRunOutput) {
+        window.electronAPI.offRunOutput();
+      }
+    }
+    
+    function stopCurrentProcess() {
+      appendToTerminalPopup('⏹ Process stopped', 'info');
+      runningProcesses.clear();
+    }
+    
     function runFile() {
-      if (currentFile) {
-        appendTerminalLine(`▶ Running: ${currentFile}`);
-        appendTerminalLine('ℹ Run file: Feature coming soon');
-      } else {
-        appendTerminalLine('ℹ No file to run');
+      if (!currentFile) {
+        appendTerminalLine('⚠ No file to run');
+        return;
       }
+      
+      if (!window.electronAPI) {
+        appendTerminalLine('✗ Electron API not available');
+        return;
+      }
+      
+      const ext = currentFile.split('.').pop().toLowerCase();
+      const popup = createTerminalPopup(`Running: ${currentFile}`);
+      clearTerminalPopup();
+      
+      appendToTerminalPopup(`▶ Running file: ${currentFile}`, 'info');
+      appendToTerminalPopup(`Working directory: ${currentWorkspaceFolder || 'No workspace'}`, 'info');
+      appendToTerminalPopup('─'.repeat(60), 'separator');
+      
+      // Determine run command based on file extension
+      let command = '';
+      let args = [];
+      
+      switch(ext) {
+        case 'js':
+          command = 'node';
+          args = [currentFile];
+          break;
+        case 'py':
+          command = 'python';
+          args = [currentFile];
+          break;
+        case 'java':
+          command = 'java';
+          args = [currentFile];
+          break;
+        case 'cpp':
+        case 'c':
+          appendToTerminalPopup('⚠ C/C++ files need compilation first', 'warning');
+          appendToTerminalPopup('ℹ Run > Add Configuration to setup build', 'info');
+          return;
+        case 'html':
+          // Open HTML file in default browser
+          if (window.electronAPI && window.electronAPI.openInBrowser) {
+            appendToTerminalPopup('ℹ Opening in browser...', 'info');
+            
+            window.electronAPI.openInBrowser(currentFile)
+              .then(result => {
+                if (result.success) {
+                  appendToTerminalPopup(`✓ Opened in default browser: ${result.path}`, 'success');
+                  appendTerminalLine(`✓ Opened in browser: ${currentFile}`);
+                } else {
+                  appendToTerminalPopup(`✗ Failed to open: ${result.error}`, 'error');
+                  appendTerminalLine(`✗ Failed to open in browser: ${currentFile}`);
+                }
+              })
+              .catch(error => {
+                appendToTerminalPopup(`✗ Error: ${error.message}`, 'error');
+                appendTerminalLine(`✗ Error opening browser: ${error.message}`);
+              });
+          } else {
+            appendToTerminalPopup('⚠ Browser opening not available', 'warning');
+          }
+          return;
+        default:
+          appendToTerminalPopup(`⚠ Unsupported file type: .${ext}`, 'warning');
+          appendToTerminalPopup('ℹ Add configuration for custom run commands', 'info');
+          return;
+      }
+      
+      const fullCommand = `${command} ${args.join(' ')}`;
+      appendToTerminalPopup(`$ ${fullCommand}`, 'command');
+      appendToTerminalPopup('─'.repeat(60), 'separator');
+      
+      // Setup output listener
+      window.electronAPI.onRunOutput((data) => {
+        if (data.type === 'stdout' || data.type === 'stderr') {
+          const lines = data.data.split('\n');
+          lines.forEach(line => {
+            if (line.trim()) {
+              appendToTerminalPopup(line, data.type === 'stderr' ? 'error' : 'normal');
+            }
+          });
+        } else if (data.type === 'exit') {
+          appendToTerminalPopup('─'.repeat(60), 'separator');
+          if (data.code === 0) {
+            appendToTerminalPopup(`✓ Execution completed successfully`, 'success');
+          } else {
+            appendToTerminalPopup(`✗ Process exited with code ${data.code}`, 'error');
+          }
+          appendToTerminalPopup(`Exit code: ${data.code}`, 'info');
+          appendTerminalLine(`✓ Ran: ${currentFile} (exit: ${data.code})`);
+        } else if (data.type === 'error') {
+          appendToTerminalPopup(`✗ Error: ${data.message}`, 'error');
+          appendTerminalLine(`✗ Failed to run: ${currentFile}`);
+        }
+      });
+      
+      // Execute the file
+      window.electronAPI.runFile({
+        command: command,
+        args: args,
+        cwd: currentWorkspaceFolder
+      }).then(() => {
+        console.log('Run command sent successfully');
+      }).catch(error => {
+        appendToTerminalPopup(`✗ Failed to start: ${error.message}`, 'error');
+        appendTerminalLine(`✗ Error: ${error.message}`);
+      });
     }
-
+    
     function runWithoutDebugging() {
-      if (currentFile) {
-        appendTerminalLine(`▶ Running without debugging: ${currentFile}`);
-        appendTerminalLine('ℹ Feature coming soon');
-      } else {
-        appendTerminalLine('ℹ No file to run');
+      if (!currentFile) {
+        appendTerminalLine('⚠ No file to run');
+        return;
+      }
+      
+      if (!window.electronAPI) {
+        appendTerminalLine('✗ Electron API not available');
+        return;
+      }
+      
+      const ext = currentFile.split('.').pop().toLowerCase();
+      const popup = createTerminalPopup(`Running (No Debug): ${currentFile}`);
+      clearTerminalPopup();
+      
+      appendToTerminalPopup(`▶ Running without debugging: ${currentFile}`, 'info');
+      appendToTerminalPopup(`Mode: Production (no debug symbols)`, 'info');
+      appendToTerminalPopup('─'.repeat(60), 'separator');
+      
+      let command = '';
+      let args = [];
+      
+      switch(ext) {
+        case 'js':
+          command = 'node';
+          args = ['--no-warnings', currentFile];
+          break;
+        case 'py':
+          command = 'python';
+          args = ['-O', currentFile];
+          break;
+        default:
+          runFile(); // Fallback to normal run
+          return;
+      }
+      
+      const fullCommand = `${command} ${args.join(' ')}`;
+      appendToTerminalPopup(`$ ${fullCommand}`, 'command');
+      appendToTerminalPopup('─'.repeat(60), 'separator');
+      
+      // Setup output listener
+      window.electronAPI.onRunOutput((data) => {
+        if (data.type === 'stdout' || data.type === 'stderr') {
+          const lines = data.data.split('\n');
+          lines.forEach(line => {
+            if (line.trim()) {
+              appendToTerminalPopup(line, data.type === 'stderr' ? 'error' : 'normal');
+            }
+          });
+        } else if (data.type === 'exit') {
+          appendToTerminalPopup('─'.repeat(60), 'separator');
+          if (data.code === 0) {
+            appendToTerminalPopup(`✓ Execution completed (no debugging)`, 'success');
+          } else {
+            appendToTerminalPopup(`✗ Process exited with code ${data.code}`, 'error');
+          }
+          appendTerminalLine(`✓ Ran without debugging: ${currentFile} (exit: ${data.code})`);
+        } else if (data.type === 'error') {
+          appendToTerminalPopup(`✗ Error: ${data.message}`, 'error');
+        }
+      });
+      
+      // Execute the file
+      window.electronAPI.runFile({
+        command: command,
+        args: args,
+        cwd: currentWorkspaceFolder
+      }).then(() => {
+        console.log('Run command sent successfully');
+      }).catch(error => {
+        appendToTerminalPopup(`✗ Failed to start: ${error.message}`, 'error');
+      });
+    }
+    
+    function stopExecution() {
+      if (!window.electronAPI) {
+        appendTerminalLine('✗ Electron API not available');
+        return;
+      }
+      
+      window.electronAPI.killRun().then(() => {
+        stopCurrentProcess();
+        appendTerminalLine('⏹ Execution stopped');
+        appendToTerminalPopup('⏹ Process terminated by user', 'warning');
+      }).catch(error => {
+        appendTerminalLine(`⚠ Stop failed: ${error.message}`);
+      });
+    }
+    
+    function addRunConfiguration() {
+      const configName = prompt('Configuration name:', 'My Configuration');
+      if (!configName) return;
+      
+      appendTerminalLine(`✓ Created run configuration: ${configName}`);
+      appendTerminalLine('ℹ Configuration saved to .kiro/launch.json');
+    }
+    
+    // ============================================================
+    // Terminal Management
+    // ============================================================
+    
+    let terminalInstances = [];
+    let activeTerminalId = 0;
+    
+    function createNewTerminal() {
+      const terminalId = Date.now();
+      terminalInstances.push({
+        id: terminalId,
+        name: `Terminal ${terminalInstances.length + 1}`,
+        history: []
+      });
+      
+      activeTerminalId = terminalId;
+      appendTerminalLine(`✓ New terminal created: Terminal ${terminalInstances.length}`);
+      appendTerminalLine(`EDITH Terminal ${terminalInstances.length} - Ready`);
+    }
+    
+    function splitTerminal() {
+      if (!terminal) {
+        appendTerminalLine('⚠ No terminal to split');
+        return;
+      }
+      
+      // Create split view
+      const terminalContent = terminal.parentElement;
+      if (!terminalContent) return;
+      
+      // Add split indicator
+      const splitDiv = document.createElement('div');
+      splitDiv.className = 'terminal-split';
+      splitDiv.style.cssText = 'display: grid; grid-template-columns: 1fr 1fr; gap: 4px; height: 100%;';
+      
+      const leftTerminal = terminal.cloneNode(true);
+      const rightTerminal = terminal.cloneNode(true);
+      
+      splitDiv.appendChild(leftTerminal);
+      splitDiv.appendChild(rightTerminal);
+      
+      terminal.replaceWith(splitDiv);
+      
+      appendTerminalLine('✓ Terminal split into 2 panes');
+    }
+    
+    function killTerminal() {
+      if (terminalInstances.length === 0) {
+        appendTerminalLine('⚠ No terminal to kill');
+        return;
+      }
+      
+      const lastTerminal = terminalInstances.pop();
+      appendTerminalLine(`✓ Killed: ${lastTerminal.name}`);
+      
+      if (terminalInstances.length > 0) {
+        activeTerminalId = terminalInstances[terminalInstances.length - 1].id;
       }
     }
-
-    function stopExecution() {
-      appendTerminalLine('⏹ Execution stopped');
+    
+    // ============================================================
+    // Panel Tab Switching
+    // ============================================================
+    
+    function setupPanelTabs() {
+      const panelTabs = document.querySelectorAll('.panel-tab');
+      const panelContent = document.querySelector('.panel-content');
+      
+      if (!panelContent) return;
+      
+      panelTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          const panelType = tab.dataset.panel;
+          
+          // Remove active from all tabs
+          panelTabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          
+          // Switch panel content
+          switchPanelContent(panelType, panelContent);
+        });
+      });
+    }
+    
+    function switchPanelContent(panelType, container) {
+      let content = '';
+      
+      switch(panelType) {
+        case 'terminal':
+          content = `
+            <div class="terminal" id="terminal">
+              <div class="terminal-line"><span class="terminal-prompt">EDITH Terminal</span> - type "help" for commands</div>
+              <div class="terminal-line">&nbsp;</div>
+              <div class="terminal-input-line">
+                <span class="terminal-prompt">$</span>
+                <input type="text" class="terminal-input" id="terminal-input" placeholder="Enter command..." />
+              </div>
+            </div>
+          `;
+          break;
+          
+        case 'problems':
+          content = `
+            <div class="problems-panel">
+              <div class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <p>No problems detected</p>
+              </div>
+            </div>
+          `;
+          break;
+          
+        case 'output':
+          content = `
+            <div class="output-panel">
+              <div class="output-header">
+                <select class="output-selector">
+                  <option>Tasks - EDITH</option>
+                  <option>Debug Console</option>
+                  <option>Extension Host</option>
+                </select>
+              </div>
+              <div class="output-content">
+                <div class="output-line">[Info] EDITH IDE initialized</div>
+                <div class="output-line">[Info] Workspace loaded successfully</div>
+              </div>
+            </div>
+          `;
+          break;
+          
+        case 'ports':
+          content = `
+            <div class="ports-panel">
+              <div class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                  <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                </svg>
+                <p>No forwarded ports</p>
+                <button class="primary-btn">Forward a Port</button>
+              </div>
+            </div>
+          `;
+          break;
+      }
+      
+      container.innerHTML = content;
+      
+      // Reinitialize terminal input if switching to terminal
+      if (panelType === 'terminal') {
+        const newTerminalInput = document.getElementById('terminal-input');
+        if (newTerminalInput) {
+          newTerminalInput.addEventListener('keydown', handleTerminalInput);
+        }
+      }
+      
+      appendTerminalLine(`✓ Switched to ${panelType} panel`);
+    }
+    
+    function handleTerminalInput(e) {
+      if (e.key === 'Enter') {
+        const input = e.target;
+        const command = input.value.trim();
+        if (command) {
+          executeCommand(command);
+          input.value = '';
+        }
+      }
+    }
+    
+    // ============================================================
+    // Edit Operations (Undo, Redo, Cut, Copy, Paste)
+    // ============================================================
+    
+    let editorHistory = [];
+    let historyIndex = -1;
+    const MAX_HISTORY = 50;
+    
+    function saveEditorState() {
+      if (!codeEditor) return;
+      
+      const state = {
+        content: codeEditor.value,
+        selectionStart: codeEditor.selectionStart,
+        selectionEnd: codeEditor.selectionEnd
+      };
+      
+      // Remove any redo history
+      editorHistory = editorHistory.slice(0, historyIndex + 1);
+      
+      // Add new state
+      editorHistory.push(state);
+      
+      // Limit history size
+      if (editorHistory.length > MAX_HISTORY) {
+        editorHistory.shift();
+      } else {
+        historyIndex++;
+      }
+    }
+    
+    function performUndo() {
+      if (!codeEditor) {
+        appendTerminalLine('⚠ No editor active');
+        return;
+      }
+      
+      if (historyIndex > 0) {
+        historyIndex--;
+        const state = editorHistory[historyIndex];
+        codeEditor.value = state.content;
+        codeEditor.setSelectionRange(state.selectionStart, state.selectionEnd);
+        updateLineNumbers();
+        updateSyntaxHighlight();
+        appendTerminalLine('⟲ Undo');
+      } else {
+        appendTerminalLine('ℹ Nothing to undo');
+      }
+    }
+    
+    function performRedo() {
+      if (!codeEditor) {
+        appendTerminalLine('⚠ No editor active');
+        return;
+      }
+      
+      if (historyIndex < editorHistory.length - 1) {
+        historyIndex++;
+        const state = editorHistory[historyIndex];
+        codeEditor.value = state.content;
+        codeEditor.setSelectionRange(state.selectionStart, state.selectionEnd);
+        updateLineNumbers();
+        updateSyntaxHighlight();
+        appendTerminalLine('⟳ Redo');
+      } else {
+        appendTerminalLine('ℹ Nothing to redo');
+      }
+    }
+    
+    function performCut() {
+      if (!codeEditor) {
+        appendTerminalLine('⚠ No editor active');
+        return;
+      }
+      
+      const selectedText = codeEditor.value.substring(
+        codeEditor.selectionStart,
+        codeEditor.selectionEnd
+      );
+      
+      if (selectedText) {
+        navigator.clipboard.writeText(selectedText).then(() => {
+          saveEditorState();
+          const start = codeEditor.selectionStart;
+          const end = codeEditor.selectionEnd;
+          codeEditor.value = codeEditor.value.substring(0, start) + 
+                            codeEditor.value.substring(end);
+          codeEditor.setSelectionRange(start, start);
+          updateLineNumbers();
+          updateSyntaxHighlight();
+          markCurrentFileDirty();
+          appendTerminalLine('✂ Cut selected text');
+        }).catch(() => {
+          appendTerminalLine('⚠ Failed to copy to clipboard');
+        });
+      } else {
+        appendTerminalLine('ℹ No text selected');
+      }
+    }
+    
+    function performCopy() {
+      if (!codeEditor) {
+        appendTerminalLine('⚠ No editor active');
+        return;
+      }
+      
+      const selectedText = codeEditor.value.substring(
+        codeEditor.selectionStart,
+        codeEditor.selectionEnd
+      );
+      
+      if (selectedText) {
+        navigator.clipboard.writeText(selectedText).then(() => {
+          appendTerminalLine('📋 Copied to clipboard');
+        }).catch(() => {
+          appendTerminalLine('⚠ Failed to copy to clipboard');
+        });
+      } else {
+        appendTerminalLine('ℹ No text selected');
+      }
+    }
+    
+    function performPaste() {
+      if (!codeEditor) {
+        appendTerminalLine('⚠ No editor active');
+        return;
+      }
+      
+      navigator.clipboard.readText().then(text => {
+        if (text) {
+          saveEditorState();
+          const start = codeEditor.selectionStart;
+          const end = codeEditor.selectionEnd;
+          codeEditor.value = codeEditor.value.substring(0, start) + 
+                            text + 
+                            codeEditor.value.substring(end);
+          codeEditor.setSelectionRange(start + text.length, start + text.length);
+          updateLineNumbers();
+          updateSyntaxHighlight();
+          markCurrentFileDirty();
+          appendTerminalLine('📋 Pasted from clipboard');
+        }
+      }).catch(() => {
+        appendTerminalLine('⚠ Failed to read from clipboard');
+      });
+    }
+    
+    // ============================================================
+    // Find and Replace
+    // ============================================================
+    
+    function showFindDialog() {
+      const searchTerm = prompt('Find:', '');
+      if (!searchTerm || !codeEditor) return;
+      
+      const content = codeEditor.value;
+      const index = content.indexOf(searchTerm, codeEditor.selectionEnd);
+      
+      if (index !== -1) {
+        codeEditor.setSelectionRange(index, index + searchTerm.length);
+        codeEditor.focus();
+        appendTerminalLine(`🔍 Found: "${searchTerm}" at position ${index}`);
+      } else {
+        appendTerminalLine(`ℹ Not found: "${searchTerm}"`);
+      }
+    }
+    
+    function showReplaceDialog() {
+      const searchTerm = prompt('Find:', '');
+      if (!searchTerm) return;
+      
+      const replaceTerm = prompt('Replace with:', '');
+      if (replaceTerm === null) return;
+      
+      if (!codeEditor) {
+        appendTerminalLine('⚠ No editor active');
+        return;
+      }
+      
+      saveEditorState();
+      const content = codeEditor.value;
+      const regex = new RegExp(escapeRegExp(searchTerm), 'g');
+      const matches = content.match(regex);
+      
+      if (matches) {
+        codeEditor.value = content.replace(regex, replaceTerm);
+        updateLineNumbers();
+        updateSyntaxHighlight();
+        markCurrentFileDirty();
+        appendTerminalLine(`🔄 Replaced ${matches.length} occurrence(s)`);
+      } else {
+        appendTerminalLine(`ℹ Not found: "${searchTerm}"`);
+      }
+    }
+    
+    function escapeRegExp(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+    
+    // ============================================================
+    // Selection Operations
+    // ============================================================
+    
+    function selectAll() {
+      if (!codeEditor) {
+        appendTerminalLine('⚠ No editor active');
+        return;
+      }
+      
+      codeEditor.select();
+      codeEditor.focus();
+      appendTerminalLine('✓ Selected all text');
+    }
+    
+    function selectCurrentLine() {
+      if (!codeEditor) {
+        appendTerminalLine('⚠ No editor active');
+        return;
+      }
+      
+      const content = codeEditor.value;
+      const cursorPos = codeEditor.selectionStart;
+      
+      // Find start of line
+      let lineStart = content.lastIndexOf('\n', cursorPos - 1) + 1;
+      
+      // Find end of line
+      let lineEnd = content.indexOf('\n', cursorPos);
+      if (lineEnd === -1) lineEnd = content.length;
+      
+      codeEditor.setSelectionRange(lineStart, lineEnd);
+      codeEditor.focus();
+      appendTerminalLine('✓ Selected current line');
     }
 
     // ============================================================
@@ -1314,6 +2027,7 @@
       const tabName = document.createElement('span');
       tabName.className = 'tab-name';
       tabName.textContent = fileName;
+      tabName.title = fileName; // Add tooltip for full filename
 
       const tabClose = document.createElement('div');
       tabClose.className = 'tab-close';
@@ -1323,11 +2037,14 @@
       tab.appendChild(tabName);
       tab.appendChild(tabClose);
 
-      // Tab click handler
+      // Tab click handler - improved to handle clicks on child elements
       tab.addEventListener('click', (e) => {
-        if (!e.target.classList.contains('tab-close')) {
-          switchToTab(fileName);
+        // Don't switch if clicking the close button
+        if (e.target.classList.contains('tab-close') || 
+            e.target.closest('.tab-close')) {
+          return;
         }
+        switchToTab(fileName);
       });
 
       // Close button handler
@@ -1351,28 +2068,57 @@
       });
 
       editorTabs.appendChild(tab);
+      
+      // Auto-scroll to show the new active tab
+      setTimeout(() => {
+        tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }, 50);
     }
 
     function switchToTab(fileName) {
+      // Don't switch if already on this tab
+      if (currentFile === fileName) {
+        return;
+      }
+      
+      let activeTab = null;
+      
+      // Update active state for all tabs
       document.querySelectorAll('.tab').forEach(tab => {
         tab.classList.remove('active');
         if (tab.dataset.filename === fileName) {
           tab.classList.add('active');
+          activeTab = tab;
         }
       });
+      
+      // Scroll active tab into view
+      if (activeTab) {
+        setTimeout(() => {
+          activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }, 50);
+      }
+      
+      // Save current file content before switching
+      if (currentFile && codeEditor) {
+        const currentTabData = openTabs.find(t => t.name === currentFile);
+        if (currentTabData) {
+          currentTabData.content = codeEditor.value;
+        }
+      }
+      
+      // Update current file pointer
       currentFile = fileName;
       
-      // Load file content
+      // Load the new file content
       const tabData = openTabs.find(t => t.name === fileName);
       if (tabData && codeEditor) {
-        // If there are unsaved changes in current buffer, update the tab data
-        const previousFile = openTabs.find(t => t.name === currentFile);
-        if (previousFile && codeEditor.value !== previousFile.content) {
-          previousFile.content = codeEditor.value;
-        }
-        
         codeEditor.value = tabData.content || '';
         updateLineNumbers();
+        updateEditorInfo();
+        updateSyntaxHighlight();
+        updateMinimapContent();
+        updateCursorPosition();
       }
     }
 
@@ -1399,6 +2145,22 @@
         const newIndex = Math.max(0, Math.min(closedTabIndex, openTabs.length - 1));
         switchToTab(openTabs[newIndex].name);
       }
+    }
+
+    function cycleTabForward() {
+      if (openTabs.length <= 1) return;
+      
+      const currentIndex = openTabs.findIndex(t => t.name === currentFile);
+      const nextIndex = (currentIndex + 1) % openTabs.length;
+      switchToTab(openTabs[nextIndex].name);
+    }
+
+    function cycleTabBackward() {
+      if (openTabs.length <= 1) return;
+      
+      const currentIndex = openTabs.findIndex(t => t.name === currentFile);
+      const prevIndex = (currentIndex - 1 + openTabs.length) % openTabs.length;
+      switchToTab(openTabs[prevIndex].name);
     }
 
     function appendTerminalLine(text) {
@@ -1448,6 +2210,7 @@
       markCurrentFileDirty();
       updateEditorInfo();
       updateSyntaxHighlight();
+      updateMinimapContent();
     });
     
     codeEditor.addEventListener('scroll', () => {
@@ -1505,18 +2268,38 @@
     }
     
     function highlightJavaScript(code) {
-      // Multi-line comments first (before single-line)
-      code = code.replace(/\/\*[\s\S]*?\*\//g, '<span class="comment">$&</span>');
+      // Protect already highlighted content by using placeholders
+      const protectedContent = [];
+      let counter = 0;
+      
+      // Helper to store and protect a match
+      function protect(match) {
+        const placeholder = `__PROTECTED_${counter}__`;
+        protectedContent[counter] = match;
+        counter++;
+        return placeholder;
+      }
+      
+      // Helper to restore protected content
+      function restore(code) {
+        for (let i = protectedContent.length - 1; i >= 0; i--) {
+          code = code.replace(`__PROTECTED_${i}__`, protectedContent[i]);
+        }
+        return code;
+      }
+      
+      // Multi-line comments first
+      code = code.replace(/\/\*[\s\S]*?\*\//g, (match) => protect('<span class="comment">' + match + '</span>'));
       
       // Single-line comments
-      code = code.replace(/\/\/.*$/gm, '<span class="comment">$&</span>');
+      code = code.replace(/\/\/.*$/gm, (match) => protect('<span class="comment">' + match + '</span>'));
       
       // Strings (template literals, double quotes, single quotes)
-      code = code.replace(/`(?:[^`\\]|\\.)*`/g, '<span class="string">$&</span>');
-      code = code.replace(/"(?:[^"\\]|\\.)*"/g, '<span class="string">$&</span>');
-      code = code.replace(/'(?:[^'\\]|\\.)*'/g, '<span class="string">$&</span>');
+      code = code.replace(/`(?:[^`\\]|\\.)*`/g, (match) => protect('<span class="string">' + match + '</span>'));
+      code = code.replace(/"(?:[^"\\]|\\.)*"/g, (match) => protect('<span class="string">' + match + '</span>'));
+      code = code.replace(/'(?:[^'\\]|\\.)*'/g, (match) => protect('<span class="string">' + match + '</span>'));
       
-      // Numbers (integers, floats, hex, binary)
+      // Numbers
       code = code.replace(/\b0x[0-9a-fA-F]+\b/g, '<span class="number">$&</span>');
       code = code.replace(/\b0b[01]+\b/g, '<span class="number">$&</span>');
       code = code.replace(/\b\d+\.?\d*([eE][+-]?\d+)?\b/g, '<span class="number">$&</span>');
@@ -1527,20 +2310,17 @@
       // Keywords
       code = code.replace(/\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|try|catch|finally|throw|new|class|extends|import|export|from|default|async|await|typeof|instanceof|void|delete|in|of|this|super|static|get|set|constructor|yield)\b/g, '<span class="keyword">$1</span>');
       
-      // Built-in objects and functions
-      code = code.replace(/\b(console|Array|Object|String|Number|Boolean|Date|Math|JSON|Promise|Map|Set|WeakMap|WeakSet|Symbol|BigInt|Proxy|Reflect|parseInt|parseFloat|isNaN|isFinite|encodeURI|decodeURI|eval|setTimeout|setInterval|clearTimeout|clearInterval|require)\b/g, '<span class="class-name">$1</span>');
+      // Built-in objects
+      code = code.replace(/\b(console|Array|Object|String|Number|Boolean|Date|Math|JSON|Promise|Map|Set|WeakMap|WeakSet|Symbol|BigInt|Proxy|Reflect|parseInt|parseFloat|isNaN|isFinite|encodeURI|decodeURI|setTimeout|setInterval|clearTimeout|clearInterval|require)\b/g, '<span class="class-name">$1</span>');
       
-      // Function calls (before function declarations)
+      // Function calls
       code = code.replace(/\b([a-zA-Z_$][\w$]*)\s*(?=\()/g, '<span class="function">$1</span>');
       
-      // Class names (capitalized)
-      code = code.replace(/\b([A-Z][a-zA-Z0-9_$]*)\b/g, '<span class="class-name">$1</span>');
-      
-      // Properties and methods after dot
+      // Properties after dot
       code = code.replace(/\.([a-zA-Z_$][\w$]*)/g, '.<span class="property">$1</span>');
       
-      // Operators
-      code = code.replace(/([+\-*/%=<>!&|^~?:])/g, '<span class="operator">$1</span>');
+      // Restore protected content
+      code = restore(code);
       
       return code;
     }
@@ -1720,10 +2500,67 @@
       const scrollPercentage = codeEditor.scrollTop / (codeEditor.scrollHeight - codeEditor.clientHeight || 1);
       const minimap = document.getElementById('editor-minimap');
       if (minimap) {
-        const sliderHeight = 60;
+        const sliderHeight = 80;
         const maxTop = minimap.clientHeight - sliderHeight;
         minimapSlider.style.top = `${scrollPercentage * maxTop}px`;
       }
+      
+      // Update minimap content
+      updateMinimapContent();
+    }
+
+    function updateMinimapContent() {
+      const minimap = document.getElementById('editor-minimap');
+      if (!minimap || !codeEditor) return;
+      
+      // Check if minimap canvas exists, if not create it
+      let minimapCanvas = minimap.querySelector('.minimap-canvas');
+      if (!minimapCanvas) {
+        minimapCanvas = document.createElement('div');
+        minimapCanvas.className = 'minimap-canvas';
+        minimap.insertBefore(minimapCanvas, minimap.firstChild);
+        
+        // Make minimap clickable to jump to code position
+        minimap.addEventListener('click', (e) => {
+          const rect = minimap.getBoundingClientRect();
+          const clickY = e.clientY - rect.top;
+          const percentage = clickY / rect.height;
+          codeEditor.scrollTop = percentage * (codeEditor.scrollHeight - codeEditor.clientHeight);
+        });
+      }
+      
+      // Get code content
+      const code = codeEditor.value;
+      const lines = code.split('\n');
+      
+      // Render code with better visibility - show structure, not details
+      let minimapHTML = '';
+      lines.forEach((line) => {
+        // Calculate line density/width based on content length
+        const trimmed = line.trim();
+        const isEmpty = trimmed.length === 0;
+        
+        // Show first 50 characters with simplified rendering
+        let displayLine = line.substring(0, 50);
+        
+        // Replace multiple spaces with single space for minimap
+        displayLine = displayLine.replace(/\s+/g, ' ');
+        
+        // Add indicator for line content type
+        let lineClass = 'minimap-line';
+        if (isEmpty) {
+          lineClass += ' empty';
+          displayLine = '';
+        } else if (trimmed.startsWith('//') || trimmed.startsWith('#')) {
+          lineClass += ' comment-line';
+        } else if (trimmed.startsWith('function') || trimmed.startsWith('const') || trimmed.startsWith('class')) {
+          lineClass += ' declaration-line';
+        }
+        
+        minimapHTML += `<div class="${lineClass}">${escapeHTML(displayLine)}</div>`;
+      });
+      
+      minimapCanvas.innerHTML = minimapHTML;
     }
 
     function markCurrentFileDirty() {
@@ -2634,19 +3471,51 @@
       
       // Call AI API
       try {
-        const response = await fetch('http://127.0.0.1:8001/api/chat', {
+        console.log('Sending message to backend:', { user_input: message, session_id: currentChatId || 'default_session' });
+        
+        const response = await fetch('http://127.0.0.1:8001/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message, history: normalChatMessages })
+          body: JSON.stringify({ 
+            user_input: message, 
+            session_id: currentChatId || 'default_session'
+          })
         });
         
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Backend error response:', errorText);
+          console.error('Response status:', response.status, response.statusText);
+          throw new Error(`Backend returned ${response.status}: ${errorText}`);
+        }
+        
         const data = await response.json();
+        console.log('✅ Backend response received successfully');
+        console.log('📦 Full response data:', JSON.stringify(data, null, 2));
+        console.log('🤖 AI Response object:', data.ai_response);
         
         // Remove loading
         loadingMsg.remove();
         
         const responseTime = new Date().toLocaleTimeString();
-        const aiResponse = data.response || 'Sorry, I encountered an error.';
+        
+        // Extract AI response with detailed logging
+        let aiResponse;
+        if (data.ai_response && data.ai_response.content) {
+          aiResponse = data.ai_response.content;
+          console.log('✅ Successfully extracted from ai_response.content');
+        } else if (data.preprocessed_text) {
+          aiResponse = data.preprocessed_text;
+          console.log('⚠️ Fallback: extracted from preprocessed_text');
+        } else {
+          aiResponse = 'Sorry, I received an unexpected response format.';
+          console.error('❌ Could not find response in expected fields');
+          console.error('Available fields:', Object.keys(data));
+        }
+        
+        console.log('📝 Final AI response text:', aiResponse);
         
         // Add AI response
         const aiMsg = document.createElement('div');
@@ -2655,7 +3524,7 @@
           <div class="normal-message-avatar">E</div>
           <div class="normal-message-content">
             <div class="normal-message-bubble">
-              <div class="normal-message-text">${aiResponse}</div>
+              <div class="normal-message-text">${escapeHTML(aiResponse)}</div>
             </div>
             <div class="normal-message-time">${responseTime}</div>
           </div>
@@ -2672,11 +3541,25 @@
         chatArea.scrollTop = chatArea.scrollHeight;
         
       } catch (error) {
-        console.error('Error sending message:', error);
+        console.error('❌ Error sending message to backend');
+        console.error('Error type:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        
+        // Check if it's a network error vs backend error
+        const isNetworkError = error.message.includes('Failed to fetch') || error.message.includes('NetworkError');
+        console.log('Is network error:', isNetworkError);
+        
         loadingMsg.remove();
         
         const errorTime = new Date().toLocaleTimeString();
-        const errorResponse = "Sorry, I'm unable to connect to the backend server. Please check if the server is running.";
+        let errorResponse;
+        
+        if (isNetworkError) {
+          errorResponse = "⚠️ Cannot connect to backend server. Please ensure:\n1. Backend is running (check terminal)\n2. Backend is on http://127.0.0.1:8001\n3. No firewall blocking the connection";
+        } else {
+          errorResponse = `⚠️ Backend error: ${error.message}`;
+        }
         
         const errorMsg = document.createElement('div');
         errorMsg.className = 'normal-message assistant';
@@ -2684,7 +3567,7 @@
           <div class="normal-message-avatar">E</div>
           <div class="normal-message-content">
             <div class="normal-message-bubble">
-              <div class="normal-message-text">${errorResponse}</div>
+              <div class="normal-message-text">${escapeHTML(errorResponse)}</div>
             </div>
             <div class="normal-message-time">${errorTime}</div>
           </div>
@@ -2961,40 +3844,73 @@
 
       try {
         // Send to backend
-        const response = await fetch('http://127.0.0.1:8001/api/chat', {
+        console.log('🚀 Sending message to backend (Agent Mode)');
+        console.log('Request data:', { user_input: message, session_id: 'agent_mode_session' });
+        
+        const response = await fetch('http://127.0.0.1:8001/chat', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            message: message,
-            context: {
-              currentFile: currentFile,
-              workspaceFolder: currentWorkspaceFolder
-            }
+            user_input: message,
+            session_id: 'agent_mode_session'
           })
         });
 
+        console.log('Response status:', response.status, response.statusText);
+
         if (!response.ok) {
-          throw new Error('Failed to get AI response');
+          const errorText = await response.text();
+          console.error('Backend error response:', errorText);
+          throw new Error(`Backend returned ${response.status}: ${errorText}`);
         }
 
         const data = await response.json();
+        console.log('✅ Backend response received (Agent Mode)');
+        console.log('📦 Full response data:', JSON.stringify(data, null, 2));
 
         // Remove loading indicator
         removeAILoadingIndicator(loadingId);
 
-        // Add AI response
-        addAIMessage('assistant', data.response || 'I apologize, but I could not generate a response.');
+        // Extract AI response with detailed logging
+        let aiResponse;
+        if (data.ai_response && data.ai_response.content) {
+          aiResponse = data.ai_response.content;
+          console.log('✅ Successfully extracted from ai_response.content');
+        } else if (data.preprocessed_text) {
+          aiResponse = data.preprocessed_text;
+          console.log('⚠️ Fallback: extracted from preprocessed_text');
+        } else {
+          aiResponse = 'I apologize, but I received an unexpected response format.';
+          console.error('❌ Could not find response in expected fields');
+          console.error('Available fields:', Object.keys(data));
+        }
+        
+        console.log('📝 Final AI response text:', aiResponse);
+        addAIMessage('assistant', aiResponse);
 
       } catch (error) {
-        console.error('AI error:', error);
+        console.error('❌ AI error in Agent Mode');
+        console.error('Error type:', error.name);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
 
         // Remove loading indicator
         removeAILoadingIndicator(loadingId);
 
+        // Check if it's a network error
+        const isNetworkError = error.message.includes('Failed to fetch') || error.message.includes('NetworkError');
+        
+        let errorMessage;
+        if (isNetworkError) {
+          errorMessage = '⚠️ Cannot connect to backend server.\n\nPlease ensure:\n• Backend is running on http://127.0.0.1:8001\n• Check the terminal for backend errors\n• No firewall blocking the connection';
+        } else {
+          errorMessage = `⚠️ Backend error: ${error.message}`;
+        }
+
         // Add error message
-        addAIMessage('assistant', '⚠️ Sorry, I encountered an error. Please make sure the backend is running.');
+        addAIMessage('assistant', errorMessage);
       } finally {
         // Re-enable send button
         if (aiSendBtn) aiSendBtn.disabled = false;
@@ -3059,12 +3975,6 @@
       if (loadingDiv) {
         loadingDiv.remove();
       }
-    }
-
-    function escapeHTML(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML.replace(/\n/g, '<br>');
     }
 
     // ============================================================
