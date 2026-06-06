@@ -127,7 +127,7 @@ const SearchPanel = (() => {
       el.addEventListener('click', () => {
         const path = el.dataset.path;
         const line = parseInt(el.dataset.line);
-        EditorManager.openFile(path).then ? EditorManager.openFile(path) : null;
+        EditorManager.openFile(path);
         // Try to jump to line after a short delay
         setTimeout(() => {
           const tabId = EditorManager.getCurrentTabId();

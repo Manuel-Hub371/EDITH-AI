@@ -5,12 +5,11 @@ const ExtensionsManager = (() => {
   const CACHE_KEY = 'edith-extensions';
   
   let installedExtensions = [];
-  let searchResults = [];
   let currentPage = 0;
   let isLoading = false;
 
   // DOM Elements
-  let searchInput, extensionsList, searchBtn;
+  let searchInput, extensionsList;
 
   // ─── Init ─────────────────────────────────────────────────────────────────
 
@@ -51,7 +50,6 @@ const ExtensionsManager = (() => {
     try {
       showLoading();
       const results = await searchExtensions(query);
-      searchResults = results;
       renderSearchResults(results);
     } catch (error) {
       console.error('[ExtensionsManager] Search error:', error);
@@ -427,7 +425,6 @@ const ExtensionsManager = (() => {
     // Clear search button
     document.getElementById('btn-clear-search')?.addEventListener('click', () => {
       searchInput.value = '';
-      searchResults = [];
       renderExtensions();
     });
 

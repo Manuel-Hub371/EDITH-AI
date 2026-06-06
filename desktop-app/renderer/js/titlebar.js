@@ -7,20 +7,14 @@
  */
 (function () {
 
-  console.log('[titlebar] Loading...');
-
   // ─── Wait for module helper ────────────────────────────────────────────────
   function waitForModule(moduleName, callback, maxRetries = 50, delay = 100) {
     let retries = 0;
     function check() {
       if (window[moduleName]) {
-        console.log(`[titlebar] ${moduleName} found after ${retries} retries`);
         callback();
       } else if (retries < maxRetries) {
         retries++;
-        if (retries % 10 === 0) {
-          console.log(`[titlebar] Waiting for ${moduleName}... (${retries}/${maxRetries})`);
-        }
         setTimeout(check, delay);
       } else {
         console.error(`[titlebar] ${moduleName} not available after ${maxRetries * delay}ms`);
@@ -31,7 +25,6 @@
 
   // ─── Action handler ────────────────────────────────────────────────────────
   function handleAction(action) {
-    console.log('[titlebar] Handling action:', action);
     
     switch (action) {
       case 'toggle-terminal':
@@ -86,7 +79,7 @@
         waitForModule('EditorManager', () => EditorManager.showWelcome());
         break;
       case 'about':
-        waitForModule('Modal', () => Modal.alert('About NovaGen', 'NovaGen — Next-Generation AI Engineering\nVersion 1.0.0\n\nBuilt with Electron + Monaco Editor'));
+        waitForModule('Modal', () => Modal.alert('About EDITH', 'EDITH — Next-Generation AI Engineering\nVersion 1.0.0\n\nBuilt with Electron + Monaco Editor'));
         break;
       case 'new-file':
         waitForModule('EditorManager', () => {
@@ -96,10 +89,11 @@
           }
         });
         break;
-      case 'new-folder':
+      case 'new-folder': {
         const btn = document.getElementById('btn-new-folder');
         if (btn) btn.click();
         break;
+      }
       case 'save':
         waitForModule('EditorManager', () => EditorManager.saveCurrentFile());
         break;
@@ -282,8 +276,8 @@
       { label: 'Welcome',           action: () => handleAction('show-welcome') },
       { label: 'Keyboard Shortcuts',key: 'Ctrl+K Ctrl+S', action: () => handleAction('show-welcome') },
       { sep: true },
-      { label: 'About NovaGen',     action: () => handleAction('about') },
-    ],
+      { label: 'About EDITH',       action: () => handleAction('about') },
+    ]
   };
 
   // ─── Dropdown ──────────────────────────────────────────────────────────────
@@ -322,7 +316,6 @@
       `;
       if (!item.disabled && item.action) {
         li.onclick = () => {
-          console.log('[titlebar] Menu item clicked:', item.label);
           closeMenu();
           // Execute action immediately
           try {
@@ -474,23 +467,10 @@
         : `<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect width="9" height="9" x="0.5" y="0.5" stroke="currentColor" stroke-width="1"/></svg>`;
       btnMax.title = isMax ? 'Restore Down' : 'Maximize';
     });
-
-    console.log('[titlebar] Window controls ready');
   }
 
   // ─── Boot ──────────────────────────────────────────────────────────────────
-  console.log('[titlebar] Checking initial module availability:');
-  console.log('  EditorManager:', typeof window.EditorManager);
-  console.log('  TabManager:', typeof window.TabManager);
-  console.log('  FileTree:', typeof window.FileTree);
-  console.log('  Terminal:', typeof window.Terminal);
-  console.log('  App:', typeof window.App);
-  console.log('  Modal:', typeof window.Modal);
-  console.log('  Notifications:', typeof window.Notifications);
-  
   wireActionButtons();
   wireWindowControls();
-  
-  console.log('[titlebar] Initialization complete');
 
 })();

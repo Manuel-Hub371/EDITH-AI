@@ -18,7 +18,7 @@ const FileTree = (() => {
     noFolderEl.style.display = 'none';
     treeContainer.style.display = 'block';
     await refresh();
-    document.title = `${folderPath.split(/[/\\]/).pop()} — NovaGen`;
+    document.title = `${folderPath.split(/[/\\]/).pop()} — EDITH`;
   }
 
   async function refresh() {
@@ -37,7 +37,7 @@ const FileTree = (() => {
     treeContainer.innerHTML = '';
     treeContainer.style.display = 'none';
     noFolderEl.style.display = 'flex';
-    document.title = 'NovaGen — Next-Generation AI Engineering';
+    document.title = 'EDITH — Next-Generation AI Engineering';
     console.log('[FileTree] Folder closed');
   }
 

@@ -56,7 +56,7 @@ const Terminal = (() => {
   function init(initialCwd) {
     cwd = initialCwd || null;
     updatePrompt();
-    writeLine('NovaGen Terminal  —  type "help" for commands', 'info');
+    writeLine('EDITH Terminal  —  type "help" for commands', 'info');
     writeLine('', '');
   }
 
@@ -150,7 +150,7 @@ const Terminal = (() => {
 
   function showHelp() {
     const lines = [
-      'NovaGen Terminal — built-in commands:',
+      'EDITH Terminal — built-in commands:',
       '  clear / cls    Clear the terminal',
       '  cd <path>      Change directory',
       '  pwd            Print working directory',

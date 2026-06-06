@@ -72,7 +72,7 @@ const App = (() => {
     // Load saved settings
     loadSettings();
 
-    console.log('NovaGen initialized');
+    console.log('EDITH initialized');
   }
 
   // ─── Activity Bar ─────────────────────────────────────────────────────────
@@ -226,7 +226,7 @@ const App = (() => {
       case 'replace':     EditorManager.openReplace(); break;
       case 'toggle-sidebar': toggleSidebar(); break;
       case 'toggle-terminal': Terminal.toggle(); break;
-      case 'about':       Modal.alert('About NovaGen', 'NovaGen — Next-Generation AI Engineering\nVersion 1.0.0\n\nBuilt with Electron + Monaco Editor'); break;
+      case 'about':       Modal.alert('About EDITH', 'EDITH — Next-Generation AI Engineering\nVersion 1.0.0\n\nBuilt with Electron + Monaco Editor'); break;
     }
   }
 
@@ -270,12 +270,15 @@ const App = (() => {
   }
 
   function saveSettings() {
-    try { localStorage.setItem('novagen-settings', JSON.stringify(settings)); } catch {}
+    try { localStorage.setItem('edith-settings', JSON.stringify(settings)); } catch {}
   }
 
   function loadSettings() {
     try {
-      const saved = localStorage.getItem('novagen-settings');
+      let saved = localStorage.getItem('edith-settings');
+      if (!saved) {
+        saved = localStorage.getItem('novagen-settings');
+      }
       if (saved) {
         settings = { ...settings, ...JSON.parse(saved) };
         EditorManager.applySettings(settings);

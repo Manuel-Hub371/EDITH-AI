@@ -15,7 +15,8 @@
       "default",
       {
         "ignore": [
-          "scrollbar-color"
+          "scrollbar-color",
+          "user-select"
         ]
       }
     ],
