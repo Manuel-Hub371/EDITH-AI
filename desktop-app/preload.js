@@ -1,49 +1,122 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('electronAPI', {
-  // Shell/Terminal integration
-  writeTerminal: (data) => ipcRenderer.send('terminal:write', data),
-  onTerminalData: (callback) => ipcRenderer.on('terminal:data', (event, data) => callback(data)),
-
-  // Workspace and Filesystem CRUD
-  getWorkspacePath: () => ipcRenderer.invoke('workspace:get-path'),
-  readDir: () => ipcRenderer.invoke('fs:read-dir'),
-  readFile: (relPath) => ipcRenderer.invoke('fs:read-file', relPath),
-  writeFile: (relPath, content) => ipcRenderer.invoke('fs:write-file', { relPath, content }),
-  createFile: (relPath) => ipcRenderer.invoke('fs:create-file', relPath),
-  createFolder: (relPath) => ipcRenderer.invoke('fs:create-folder', relPath),
-  deleteItem: (relPath) => ipcRenderer.invoke('fs:delete', relPath),
-  selectFolder: () => ipcRenderer.invoke('workspace:select-folder'),
-  closeFolder: () => ipcRenderer.invoke('workspace:close-folder'),
-
-  // Platform environment
-  platform: process.platform,
-
-  // System info (CPU, RAM, uptime)
-  getSystemInfo: () => ipcRenderer.invoke('system:info'),
-
-  // IDE Zoom — scales the entire window
-  getZoom: () => ipcRenderer.invoke('zoom:get'),
-  setZoom: (factor) => ipcRenderer.invoke('zoom:set', factor),
-
-  // Run File — spawns process and streams output
-  runFile: (opts) => ipcRenderer.invoke('run:file', opts),
-  killRun: () => ipcRenderer.invoke('run:kill'),
-  onRunOutput: (callback) => ipcRenderer.on('run:output', (event, data) => callback(data)),
-  offRunOutput: () => ipcRenderer.removeAllListeners('run:output'),
-
-  // Open in browser or external application
-  openInBrowser: (filePath) => ipcRenderer.invoke('file:open-external', filePath),
-
+// Expose EDITH/NovaGen API to the renderer process
+contextBridge.exposeInMainWorld('edith', {
   // Window controls
-  minimizeWindow: () => ipcRenderer.send('window:minimize'),
-  maximizeWindow: () => ipcRenderer.send('window:maximize'),
-  closeWindow: () => ipcRenderer.send('window:close'),
-  isWindowMaximized: () => ipcRenderer.invoke('window:is-maximized'),
-  onWindowStateChanged: (callback) => ipcRenderer.on('window:state-changed', (event, state) => callback(state)),
+  window: {
+    minimize: () => ipcRenderer.send('window-minimize'),
+    toggleMaximize: () => ipcRenderer.send('window-maximize-toggle'),
+    close: () => ipcRenderer.send('window-close'),
+    onMaximized: (cb) => ipcRenderer.on('window-maximized', (_, val) => cb(val)),
+    onFocus: (cb) => ipcRenderer.on('window-focus', (_, val) => cb(val)),
+    isMaximized: () => ipcRenderer.invoke('window:is-maximized'),
+  },
 
-  // Backward compatibility legacy methods
-  sendMessage: (channel, data) => ipcRenderer.send(channel, data),
-  onMessage: (channel, callback) => ipcRenderer.on(channel, (event, ...args) => callback(...args)),
-  removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
+  // Menu actions forwarded from main
+  onMenuAction: (cb) => ipcRenderer.on('menu-action', (_, action) => cb(action)),
+
+  // File system
+  fs: {
+    openFolderDialog: () => ipcRenderer.invoke('open-folder-dialog'),
+    openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
+    saveFileDialog: (defaultPath) => ipcRenderer.invoke('save-file-dialog', defaultPath),
+    readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
+    writeFile: (filePath, content) => ipcRenderer.invoke('write-file', filePath, content),
+    readDirectory: (dirPath) => ipcRenderer.invoke('read-directory', dirPath),
+    createFile: (filePath) => ipcRenderer.invoke('create-file', filePath),
+    createDirectory: (dirPath) => ipcRenderer.invoke('create-directory', dirPath),
+    renamePath: (oldPath, newPath) => ipcRenderer.invoke('rename-path', oldPath, newPath),
+    deletePath: (targetPath) => ipcRenderer.invoke('delete-path', targetPath),
+    pathExists: (targetPath) => ipcRenderer.invoke('path-exists', targetPath),
+  },
+
+  // Path utilities
+  path: {
+    getHomeDir: () => ipcRenderer.invoke('get-home-dir'),
+    getSep: () => ipcRenderer.invoke('get-path-sep'),
+    join: (...parts) => ipcRenderer.invoke('join-paths', ...parts),
+    basename: (p) => ipcRenderer.invoke('basename', p),
+    dirname: (p) => ipcRenderer.invoke('dirname', p),
+  },
+
+  // Dialogs
+  dialog: {
+    showConfirm: (options) => ipcRenderer.invoke('show-confirm-dialog', options),
+  },
+
+  // Workspace
+  workspace: {
+    getPath: () => ipcRenderer.invoke('workspace:get-path'),
+    selectFolder: () => ipcRenderer.invoke('workspace:select-folder'),
+    closeFolder: () => ipcRenderer.invoke('workspace:close-folder'),
+  },
+
+  // Terminal
+  terminal: {
+    write: (data) => ipcRenderer.send('terminal:write', data),
+    onData: (cb) => ipcRenderer.on('terminal:data', (_, data) => cb(data)),
+  },
+
+  // Run operations
+  run: {
+    file: (options) => ipcRenderer.invoke('run:file', options),
+    kill: () => ipcRenderer.invoke('run:kill'),
+    onOutput: (cb) => ipcRenderer.on('run:output', (_, data) => cb(data)),
+  },
+
+  // File operations
+  file: {
+    openExternal: (filePath) => ipcRenderer.invoke('file:open-external', filePath),
+  },
+
+  // Zoom
+  zoom: {
+    get: () => ipcRenderer.invoke('zoom:get'),
+    set: (factor) => ipcRenderer.invoke('zoom:set', factor),
+  },
+
+  // System info
+  system: {
+    getInfo: () => ipcRenderer.invoke('system:info'),
+  },
+
+  // Open VSX API proxy (bypasses file:// CORS restriction)
+  openVsx: {
+    fetch: (url) => ipcRenderer.invoke('openvsx:fetch', url),
+  },
+});
+
+// Also expose as 'novagen' for compatibility with NovaGen code
+contextBridge.exposeInMainWorld('novagen', {
+  window: {
+    minimize: () => ipcRenderer.send('window-minimize'),
+    toggleMaximize: () => ipcRenderer.send('window-maximize-toggle'),
+    close: () => ipcRenderer.send('window-close'),
+    onMaximized: (cb) => ipcRenderer.on('window-maximized', (_, val) => cb(val)),
+    onFocus: (cb) => ipcRenderer.on('window-focus', (_, val) => cb(val)),
+  },
+  onMenuAction: (cb) => ipcRenderer.on('menu-action', (_, action) => cb(action)),
+  fs: {
+    openFolderDialog: () => ipcRenderer.invoke('open-folder-dialog'),
+    openFileDialog: () => ipcRenderer.invoke('open-file-dialog'),
+    saveFileDialog: (defaultPath) => ipcRenderer.invoke('save-file-dialog', defaultPath),
+    readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
+    writeFile: (filePath, content) => ipcRenderer.invoke('write-file', filePath, content),
+    readDirectory: (dirPath) => ipcRenderer.invoke('read-directory', dirPath),
+    createFile: (filePath) => ipcRenderer.invoke('create-file', filePath),
+    createDirectory: (dirPath) => ipcRenderer.invoke('create-directory', dirPath),
+    renamePath: (oldPath, newPath) => ipcRenderer.invoke('rename-path', oldPath, newPath),
+    deletePath: (targetPath) => ipcRenderer.invoke('delete-path', targetPath),
+    pathExists: (targetPath) => ipcRenderer.invoke('path-exists', targetPath),
+  },
+  path: {
+    getHomeDir: () => ipcRenderer.invoke('get-home-dir'),
+    getSep: () => ipcRenderer.invoke('get-path-sep'),
+    join: (...parts) => ipcRenderer.invoke('join-paths', ...parts),
+    basename: (p) => ipcRenderer.invoke('basename', p),
+    dirname: (p) => ipcRenderer.invoke('dirname', p),
+  },
+  dialog: {
+    showConfirm: (options) => ipcRenderer.invoke('show-confirm-dialog', options),
+  },
 });

@@ -1,0 +1,228 @@
+/* ─── File Tree ───────────────────────────────────────────────────────────── */
+#explorer-tree {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.tree-item {
+  display: flex; align-items: center;
+  height: 22px; padding-right: 8px;
+  cursor: pointer;
+  border-radius: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  transition: background var(--transition);
+}
+.tree-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.tree-item.active { background: var(--bg-active); color: var(--text-primary); }
+.tree-item.selected { background: var(--bg-selection); color: var(--text-primary); }
+
+.tree-item-indent { flex-shrink: 0; display: inline-block; }
+.tree-item-arrow {
+  width: 16px; height: 16px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+  transition: transform var(--transition);
+}
+.tree-item-arrow svg { width: 10px; height: 10px; }
+.tree-item-arrow.open { transform: rotate(90deg); }
+.tree-item-arrow.empty { visibility: hidden; }
+
+.tree-item-icon {
+  width: 16px; height: 16px; margin: 0 4px;
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+}
+.tree-item-icon svg { width: 14px; height: 14px; }
+.tree-item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+
+.tree-item-rename {
+  flex: 1;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-focus);
+  color: var(--text-primary);
+  border-radius: 2px;
+  padding: 1px 4px;
+  font-size: 13px;
+  font-family: var(--font-ui);
+  outline: none;
+  min-width: 0;
+}
+
+/* Directory children container */
+.tree-children {
+  overflow: hidden;
+  transition: max-height 200ms ease;
+}
+.tree-children.collapsed { max-height: 0; }
+
+/* File icon colors */
+.icon-js    { color: #f0db4f; }
+.icon-ts    { color: #007acc; }
+.icon-jsx   { color: #61dafb; }
+.icon-tsx   { color: #61dafb; }
+.icon-html  { color: #e34c26; }
+.icon-css   { color: #264de4; }
+.icon-scss  { color: #c6538c; }
+.icon-json  { color: #f0db4f; }
+.icon-md    { color: #519aba; }
+.icon-py    { color: #3572A5; }
+.icon-rs    { color: #dea584; }
+.icon-go    { color: #00acd7; }
+.icon-java  { color: #b07219; }
+.icon-cpp   { color: #f34b7d; }
+.icon-c     { color: #555555; }
+.icon-sh    { color: #89e051; }
+.icon-yml   { color: #cb171e; }
+.icon-yaml  { color: #cb171e; }
+.icon-toml  { color: #9c4221; }
+.icon-dir   { color: #dcb67a; }
+.icon-git   { color: #f14e32; }
+.icon-img   { color: #a8c023; }
+.icon-txt   { color: var(--text-muted); }
+
+
+/* ─── Extensions Panel Enhanced ───────────────────────────────────────────── */
+
+.ext-icon-img {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.ext-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.ext-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: var(--red);
+  font-size: 12px;
+  text-align: center;
+}
+
+.ext-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.ext-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.ext-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ext-version {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.ext-uninstall-btn {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 11px;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.ext-uninstall-btn:hover {
+  background: var(--red);
+  color: #fff;
+  border-color: var(--red);
+}
+
+.ext-refresh-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  transition: all 0.2s;
+}
+
+.ext-refresh-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.ext-badge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+}
+
+.ext-badge.installed {
+  background: var(--bg-tertiary);
+  color: var(--green);
+  border: 1px solid var(--green);
+}
+
+/* Make extension items more interactive */
+.extension-item {
+  transition: all 0.2s;
+  cursor: pointer;
+  user-select: none;
+}
+
+.extension-item:hover {
+  background: var(--bg-hover);
+  transform: translateX(2px);
+}
+
+.extension-item:active {
+  transform: scale(0.98);
+}
+
+/* Loading animation */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.ext-loading::before {
+  content: '⚙️';
+  display: inline-block;
+  margin-right: 8px;
+  animation: spin 2s linear infinite;
+}

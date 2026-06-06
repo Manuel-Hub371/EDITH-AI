@@ -18,6 +18,13 @@
           "scrollbar-color"
         ]
       }
+    ],
+    "axe/forms": [
+      "default",
+      {
+        "label": "off",
+        "select-name": "off"
+      }
     ]
   }
 }

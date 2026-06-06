@@ -1,0 +1,59 @@
+/* ─── Notifications ───────────────────────────────────────────────────────── */
+#notification-container {
+  position: fixed;
+  bottom: 32px; right: 16px;
+  display: flex; flex-direction: column; gap: 8px;
+  z-index: 3000;
+  pointer-events: none;
+}
+
+.notification {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+  max-width: 340px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  pointer-events: all;
+  animation: slideIn 200ms ease forwards;
+  cursor: pointer;
+  transition: opacity 200ms ease;
+}
+.notification.hiding { animation: slideOut 200ms ease forwards; }
+.notification.success { border-left-color: var(--green); }
+.notification.error   { border-left-color: var(--red); }
+.notification.warning { border-left-color: var(--yellow); }
+.notification.info    { border-left-color: var(--blue); }
+
+.notification-icon { flex-shrink: 0; margin-top: 1px; }
+.notification-icon svg { width: 16px; height: 16px; }
+.notification.success .notification-icon { color: var(--green); }
+.notification.error   .notification-icon { color: var(--red); }
+.notification.warning .notification-icon { color: var(--yellow); }
+.notification.info    .notification-icon { color: var(--blue); }
+
+.notification-content { flex: 1; min-width: 0; }
+.notification-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+.notification-msg { font-size: 12px; color: var(--text-secondary); line-height: 1.4; word-break: break-word; }
+
+.notification-close {
+  flex-shrink: 0; background: none; border: none;
+  color: var(--text-muted); cursor: pointer;
+  width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 2px;
+  transition: color var(--transition), background var(--transition);
+}
+.notification-close:hover { color: var(--text-primary); background: var(--bg-hover); }
+.notification-close svg { width: 12px; height: 12px; }
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideOut {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(20px); }
+}

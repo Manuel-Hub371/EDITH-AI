@@ -1,16 +1,32 @@
 {
-  "name": "chatai-electron",
+  "name": "edith-electron",
   "version": "1.0.0",
-  "description": "EDITH",
+  "description": "EDITH - Enhanced Development Interface with Thinking and Heuristics",
   "main": "main.js",
   "scripts": {
+    "postinstall": "node scripts/copy-monaco.js",
     "start": "electron .",
-    "dist": "electron-builder --win"
+    "dev": "electron . --dev",
+    "build": "electron-builder --dir",
+    "dist": "electron-builder --win",
+    "copy-monaco": "node scripts/copy-monaco.js"
   },
   "build": {
     "appId": "com.edith.app",
     "productName": "EDITH",
     "icon": "edith.png",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "renderer/**/*",
+      "scripts/**/*",
+      "vendor/**/*",
+      "main.js",
+      "preload.js",
+      "edith.png",
+      "edith_512.png"
+    ],
     "win": {
       "icon": "edith.png",
       "target": [
@@ -21,5 +37,11 @@
   "devDependencies": {
     "electron": "^28.0.0",
     "electron-builder": "^26.8.1"
+  },
+  "dependencies": {
+    "monaco-editor": "^0.45.0",
+    "chokidar": "^3.5.3",
+    "highlight.js": "^11.9.0",
+    "tree-kill": "^1.2.2"
   }
 }

@@ -1,8 +1,9 @@
-const { app, BrowserWindow, Menu, ipcMain, dialog, screen, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const http = require('http');
+const https = require('https');
 const { spawn } = require('child_process');
 
 const ICON_PATH = path.join(__dirname, 'edith.png');
@@ -11,16 +12,17 @@ const BACKEND_HEALTH_PATH = '/health';
 const BACKEND_MAX_WAIT_MS = 60000;  // 60 seconds max wait
 const BACKEND_POLL_INTERVAL_MS = 1000; // Poll every 1 second
 
-let terminalSession = null;
 let mainWindow = null;
 let splashWindow = null;
+let terminalSession = null;
+let runProcess = null;
+
+const isDev = process.argv.includes('--dev');
 
 // Determine workspace root dynamically
 const isPackaged = app.isPackaged;
-// workspacePath is null until user opens a folder
 let workspacePath = null;
 
-// Backend is always relative to the app itself (not the user workspace)
 const appRoot = (isPackaged
   ? path.resolve(path.dirname(app.getPath('exe')), '..')
   : path.resolve(__dirname, '..')).replace(/\\/g, '/');
@@ -28,28 +30,30 @@ const backendPath = path.join(appRoot, 'backend');
 
 /**
  * waitForBackend — polls the backend health endpoint until it responds.
- * Electron does NOT start the backend; the backend must be started externally
- * (e.g., via edith-backend.exe, the Windows Service, or run manually in dev).
- *
- * @param {Function} onStatusUpdate  called with a status string on each poll
- * @returns {Promise<boolean>}       resolves true when backend is ready, false on timeout
  */
 function waitForBackend(onStatusUpdate) {
   return new Promise((resolve) => {
     const startTime = Date.now();
-    let attempt = 0;
+    let done = false;
 
     function poll() {
-      attempt++;
+      if (done) return;
       const elapsed = Math.round((Date.now() - startTime) / 1000);
       const msg = `Connecting to EDITH backend... (${elapsed}s)`;
       console.log(`[Main] ${msg}`);
       if (onStatusUpdate) onStatusUpdate(msg);
 
+      let pollDone = false;
+
       const req = http.get(`${BACKEND_URL}${BACKEND_HEALTH_PATH}`, (res) => {
+        // Consume response to free socket
+        res.resume();
+        if (pollDone) return;
+        pollDone = true;
         if (res.statusCode >= 200 && res.statusCode < 500) {
           console.log('[Main] Backend is ready!');
           if (onStatusUpdate) onStatusUpdate('Backend ready!');
+          done = true;
           resolve(true);
         } else {
           scheduleNextPoll();
@@ -57,20 +61,25 @@ function waitForBackend(onStatusUpdate) {
       });
 
       req.on('error', () => {
-        // Backend not up yet — keep polling
+        if (pollDone) return;
+        pollDone = true;
         scheduleNextPoll();
       });
 
       req.setTimeout(900, () => {
+        if (pollDone) return;
+        pollDone = true;
         req.destroy();
         scheduleNextPoll();
       });
     }
 
     function scheduleNextPoll() {
+      if (done) return;
       if (Date.now() - startTime >= BACKEND_MAX_WAIT_MS) {
         console.warn('[Main] Backend did not start within timeout. Proceeding anyway.');
         if (onStatusUpdate) onStatusUpdate('Backend not detected. Starting in offline mode.');
+        done = true;
         resolve(false);
       } else {
         setTimeout(poll, BACKEND_POLL_INTERVAL_MS);
@@ -88,9 +97,8 @@ function initTerminal(webContents) {
     } catch (e) { }
   }
 
-  // Use workspacePath if open, else fall back to user home dir
   const termCwd = workspacePath || app.getPath('home');
-  console.log(`[Main] Initializing live terminal session in: ${termCwd}`);
+  console.log(`[Main] Initializing terminal session in: ${termCwd}`);
 
   if (process.platform === 'win32') {
     terminalSession = spawn('powershell.exe', ['-NoLogo', '-ExecutionPolicy', 'Bypass'], {
@@ -117,11 +125,171 @@ function initTerminal(webContents) {
   });
 }
 
-// ── IPC Handlers for Real-Time File System & Terminal ─────────────────────
+function createSplashWindow() {
+  splashWindow = new BrowserWindow({
+    width: 420,
+    height: 420,
+    frame: false,
+    transparent: true,
+    resizable: false,
+    alwaysOnTop: true,
+    center: true,
+    icon: ICON_PATH,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true
+    }
+  });
 
-ipcMain.handle('workspace:get-path', () => {
-  return workspacePath; // null if no folder is open
+  splashWindow.loadFile(path.join(__dirname, 'renderer', 'splash.html'));
+
+  splashWindow.on('closed', () => {
+    splashWindow = null;
+  });
+}
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1400,
+    height: 900,
+    minWidth: 800,
+    minHeight: 600,
+    frame: false,
+    show: false,
+    backgroundColor: '#1e1e2e',
+    icon: ICON_PATH,
+    title: 'EDITH',
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js'),
+      spellcheck: false,
+    },
+  });
+
+  mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+
+  mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    console.log(`[Renderer] ${message} (at ${path.basename(sourceId)}:${line})`);
+  });
+
+  mainWindow.once('ready-to-show', () => {
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.close();
+    }
+    mainWindow.show();
+    if (isDev) {
+      mainWindow.webContents.openDevTools({ mode: 'detach' });
+    }
+    initTerminal(mainWindow.webContents);
+  });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+
+  mainWindow.on('maximize', () => {
+    mainWindow.webContents.send('window-maximized', true);
+  });
+  mainWindow.on('unmaximize', () => {
+    mainWindow.webContents.send('window-maximized', false);
+  });
+  mainWindow.on('focus', () => {
+    mainWindow.webContents.send('window-focus', true);
+  });
+  mainWindow.on('blur', () => {
+    mainWindow.webContents.send('window-focus', false);
+  });
+
+  buildMenu();
+}
+
+function buildMenu() {
+  const template = [
+    {
+      label: 'File',
+      submenu: [
+        { label: 'New File', accelerator: 'CmdOrCtrl+N', click: () => mainWindow.webContents.send('menu-action', 'new-file') },
+        { label: 'Open File...', accelerator: 'CmdOrCtrl+O', click: () => mainWindow.webContents.send('menu-action', 'open-file') },
+        { label: 'Open Folder...', accelerator: 'CmdOrCtrl+Shift+O', click: () => mainWindow.webContents.send('menu-action', 'open-folder') },
+        { type: 'separator' },
+        { label: 'Save', accelerator: 'CmdOrCtrl+S', click: () => mainWindow.webContents.send('menu-action', 'save') },
+        { label: 'Save As...', accelerator: 'CmdOrCtrl+Shift+S', click: () => mainWindow.webContents.send('menu-action', 'save-as') },
+        { type: 'separator' },
+        { label: 'Quit', accelerator: 'CmdOrCtrl+Q', role: 'quit' },
+      ],
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' },
+        { type: 'separator' },
+        { label: 'Find', accelerator: 'CmdOrCtrl+F', click: () => mainWindow.webContents.send('menu-action', 'find') },
+        { label: 'Replace', accelerator: 'CmdOrCtrl+H', click: () => mainWindow.webContents.send('menu-action', 'replace') },
+      ],
+    },
+    {
+      label: 'View',
+      submenu: [
+        { label: 'Toggle Sidebar', accelerator: 'CmdOrCtrl+B', click: () => mainWindow.webContents.send('menu-action', 'toggle-sidebar') },
+        { label: 'Toggle Terminal', accelerator: 'Ctrl+`', click: () => mainWindow.webContents.send('menu-action', 'toggle-terminal') },
+        { type: 'separator' },
+        { label: 'Zoom In',  accelerator: 'CmdOrCtrl+=', click: () => {
+          if (mainWindow) {
+            const f = mainWindow.webContents.getZoomFactor();
+            mainWindow.webContents.setZoomFactor(Math.min(2.0, Math.round((f + 0.1) * 10) / 10));
+          }
+        }},
+        { label: 'Zoom Out', accelerator: 'CmdOrCtrl+-', click: () => {
+          if (mainWindow) {
+            const f = mainWindow.webContents.getZoomFactor();
+            mainWindow.webContents.setZoomFactor(Math.max(0.5, Math.round((f - 0.1) * 10) / 10));
+          }
+        }},
+        { label: 'Reset Zoom', accelerator: 'CmdOrCtrl+0', click: () => {
+          if (mainWindow) mainWindow.webContents.setZoomFactor(1.0);
+        }},
+        { type: 'separator' },
+        { label: 'Toggle Dev Tools', accelerator: 'F12', click: () => mainWindow.webContents.toggleDevTools() },
+      ],
+    },
+    {
+      label: 'Help',
+      submenu: [
+        { label: 'About EDITH', click: () => mainWindow.webContents.send('menu-action', 'about') },
+        { label: 'Documentation', click: () => shell.openExternal('https://github.com') },
+      ],
+    },
+  ];
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+// ─── IPC Handlers ────────────────────────────────────────────────────────────
+
+// Window controls
+ipcMain.on('window-minimize', () => mainWindow && mainWindow.minimize());
+ipcMain.on('window-maximize-toggle', () => {
+  if (!mainWindow) return;
+  mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize();
 });
+ipcMain.on('window-close', () => mainWindow && mainWindow.close());
+
+ipcMain.handle('window:is-maximized', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    return mainWindow.isMaximized();
+  }
+  return false;
+});
+
+// Workspace
+ipcMain.handle('workspace:get-path', () => workspacePath);
 
 ipcMain.handle('workspace:select-folder', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
@@ -131,166 +299,159 @@ ipcMain.handle('workspace:select-folder', async () => {
     return { success: false, path: workspacePath };
   }
   workspacePath = result.filePaths[0].replace(/\\/g, '/');
-
-  // Re-spawn terminal session in newly selected active directory
   initTerminal(mainWindow.webContents);
-
   return { success: true, path: workspacePath };
 });
 
 ipcMain.handle('workspace:close-folder', async () => {
-  workspacePath = null; // No folder open
-
-  // Re-spawn terminal session at home dir
+  workspacePath = null;
   initTerminal(mainWindow.webContents);
-
   return { success: true, path: null };
 });
 
-ipcMain.handle('fs:read-dir', () => {
-  if (!workspacePath) return []; // No folder open
-  return readDirRecursive(workspacePath, workspacePath);
+// File system operations
+ipcMain.handle('open-folder-dialog', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory'],
+  });
+  return result.canceled ? null : result.filePaths[0];
 });
 
-ipcMain.handle('fs:create-folder', async (event, relPath) => {
-  if (!workspacePath) throw new Error('No workspace folder is open');
-  const absPath = path.isAbsolute(relPath) ? relPath : path.join(workspacePath, relPath);
+ipcMain.handle('open-file-dialog', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile', 'multiSelections'],
+  });
+  return result.canceled ? [] : result.filePaths;
+});
+
+ipcMain.handle('save-file-dialog', async (event, defaultPath) => {
+  const result = await dialog.showSaveDialog(mainWindow, {
+    defaultPath: defaultPath || 'untitled.txt',
+  });
+  return result.canceled ? null : result.filePath;
+});
+
+ipcMain.handle('read-file', async (event, filePath) => {
   try {
-    fs.mkdirSync(absPath, { recursive: true });
-    const relativePath = path.relative(workspacePath, absPath).replace(/\\/g, '/');
-    return { success: true, path: relativePath, absPath };
+    const content = fs.readFileSync(filePath, 'utf8');
+    return { success: true, content };
   } catch (err) {
-    console.error(`Error creating folder ${absPath}:`, err);
-    throw err;
+    return { success: false, error: err.message };
   }
 });
 
-ipcMain.handle('fs:read-file', async (event, relPath) => {
-  if (!workspacePath && !path.isAbsolute(relPath)) throw new Error('No workspace folder is open');
-  const absPath = path.isAbsolute(relPath) ? relPath : path.join(workspacePath, relPath);
+ipcMain.handle('write-file', async (event, filePath, content) => {
   try {
-    return fs.readFileSync(absPath, 'utf8');
-  } catch (err) {
-    console.error(`Error reading file ${absPath}:`, err);
-    throw err;
-  }
-});
-
-ipcMain.handle('fs:write-file', async (event, { relPath, content }) => {
-  if (!workspacePath && !path.isAbsolute(relPath)) throw new Error('No workspace folder is open');
-  const absPath = path.isAbsolute(relPath) ? relPath : path.join(workspacePath, relPath);
-  try {
-    fs.writeFileSync(absPath, content, 'utf8');
+    fs.writeFileSync(filePath, content, 'utf8');
     return { success: true };
   } catch (err) {
-    console.error(`Error writing file ${absPath}:`, err);
-    throw err;
+    return { success: false, error: err.message };
   }
 });
 
-ipcMain.handle('fs:create-file', async (event, relPath) => {
-  if (!workspacePath && !path.isAbsolute(relPath)) throw new Error('No workspace folder is open');
-  const absPath = path.isAbsolute(relPath) ? relPath : path.join(workspacePath, relPath);
+ipcMain.handle('read-directory', async (event, dirPath) => {
   try {
-    fs.mkdirSync(path.dirname(absPath), { recursive: true });
-    fs.writeFileSync(absPath, '', 'utf8');
-    // Return both absPath and path (relative) for compatibility
-    const relativePath = workspacePath ? path.relative(workspacePath, absPath).replace(/\\/g, '/') : absPath;
-    return { success: true, path: relativePath, absPath };
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    return {
+      success: true,
+      entries: entries.map((e) => ({
+        name: e.name,
+        isDirectory: e.isDirectory(),
+        path: path.join(dirPath, e.name),
+      })).sort((a, b) => {
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
+        return a.name.localeCompare(b.name);
+      }),
+    };
   } catch (err) {
-    console.error(`Error creating file ${absPath}:`, err);
-    throw err;
+    return { success: false, error: err.message };
   }
 });
 
-ipcMain.handle('fs:delete', async (event, relPath) => {
-  if (!workspacePath && !path.isAbsolute(relPath)) throw new Error('No workspace folder is open');
-  const absPath = path.isAbsolute(relPath) ? relPath : path.join(workspacePath, relPath);
+ipcMain.handle('create-file', async (event, filePath) => {
   try {
-    const stat = fs.statSync(absPath);
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, '', 'utf8');
+    const relativePath = workspacePath ? path.relative(workspacePath, filePath).replace(/\\/g, '/') : filePath;
+    return { success: true, path: relativePath, absPath: filePath };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('create-directory', async (event, dirPath) => {
+  try {
+    fs.mkdirSync(dirPath, { recursive: true });
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('rename-path', async (event, oldPath, newPath) => {
+  try {
+    fs.renameSync(oldPath, newPath);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('delete-path', async (event, targetPath) => {
+  try {
+    const stat = fs.statSync(targetPath);
     if (stat.isDirectory()) {
-      // Delete directory recursively
-      fs.rmSync(absPath, { recursive: true, force: true });
+      fs.rmSync(targetPath, { recursive: true, force: true });
     } else {
-      // Delete file
-      fs.unlinkSync(absPath);
+      fs.unlinkSync(targetPath);
     }
-    return { success: true, path: relPath };
+    return { success: true };
   } catch (err) {
-    console.error(`Error deleting ${absPath}:`, err);
-    throw err;
+    return { success: false, error: err.message };
   }
 });
 
+ipcMain.handle('path-exists', async (event, targetPath) => {
+  return fs.existsSync(targetPath);
+});
+
+ipcMain.handle('get-home-dir', async () => os.homedir());
+
+ipcMain.handle('get-path-sep', async () => path.sep);
+
+ipcMain.handle('join-paths', async (event, ...parts) => path.join(...parts));
+
+ipcMain.handle('basename', async (event, filePath) => path.basename(filePath));
+
+ipcMain.handle('dirname', async (event, filePath) => path.dirname(filePath));
+
+ipcMain.handle('show-confirm-dialog', async (event, options) => {
+  const result = await dialog.showMessageBox(mainWindow, {
+    type: options.type || 'question',
+    buttons: options.buttons || ['Yes', 'No'],
+    defaultId: options.defaultId || 0,
+    title: options.title || 'Confirm',
+    message: options.message || 'Are you sure?',
+    detail: options.detail || '',
+  });
+  return result.response;
+});
+
+// Terminal
 ipcMain.on('terminal:write', (event, data) => {
   if (terminalSession && terminalSession.stdin) {
     terminalSession.stdin.write(data);
   }
 });
 
-// Zoom IPC handlers — scale the entire BrowserWindow webContents
-ipcMain.handle('zoom:get', () => {
-  if (mainWindow) return mainWindow.webContents.getZoomFactor();
-  return 1.0;
-});
-
-ipcMain.handle('zoom:set', (event, factor) => {
-  if (mainWindow) {
-    const clamped = Math.max(0.5, Math.min(2.0, factor));
-    mainWindow.webContents.setZoomFactor(clamped);
-    return clamped;
-  }
-  return 1.0;
-});
-
-function sendWindowState() {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    const state = mainWindow.isMaximized() ? 'maximized' : 'normal';
-    mainWindow.webContents.send('window:state-changed', state);
-  }
-}
-
-ipcMain.handle('window:is-maximized', () => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    return mainWindow.isMaximized();
-  }
-  return false;
-});
-
-// Window control IPC handlers
-ipcMain.on('window:minimize', () => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.minimize();
-  }
-});
-
-ipcMain.on('window:maximize', () => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    if (mainWindow.isMaximized()) {
-      mainWindow.unmaximize();
-    } else {
-      mainWindow.maximize();
-    }
-  }
-});
-
-ipcMain.on('window:close', () => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.close();
-  }
-});
-
-// Run File IPC — spawns the file in a child process, streams stdout/stderr live
-let runProcess = null;
-
+// Run File
 ipcMain.handle('run:file', (event, { command, args, cwd, filePath }) => {
-  // Kill any existing run process
   if (runProcess) {
     try { runProcess.kill('SIGTERM'); } catch (e) { }
     runProcess = null;
   }
 
-  // Determine working directory
   let workDir = cwd;
   if (!workDir && filePath) {
     workDir = path.dirname(filePath.replace(/\//g, path.sep));
@@ -346,23 +507,18 @@ ipcMain.handle('run:kill', () => {
   return { killed: false, message: 'No process running' };
 });
 
-// Open file in external application (browser for HTML)
 ipcMain.handle('file:open-external', async (event, filePath) => {
   try {
-    // Resolve to absolute path if needed
     let absolutePath = filePath;
     if (!path.isAbsolute(filePath)) {
       absolutePath = path.join(workspacePath || process.cwd(), filePath);
     }
     
-    // Ensure the file exists
     if (!fs.existsSync(absolutePath)) {
       throw new Error(`File not found: ${absolutePath}`);
     }
     
-    // Convert to file:// URL for proper browser opening
     const fileUrl = `file://${absolutePath.replace(/\\/g, '/')}`;
-    
     console.log(`Opening in browser: ${fileUrl}`);
     await shell.openExternal(fileUrl);
     
@@ -373,9 +529,57 @@ ipcMain.handle('file:open-external', async (event, filePath) => {
   }
 });
 
-// System Info IPC handler — returns live CPU, RAM, uptime, platform
+// Zoom handlers
+ipcMain.handle('zoom:get', () => {
+  if (mainWindow) return mainWindow.webContents.getZoomFactor();
+  return 1.0;
+});
+
+ipcMain.handle('zoom:set', (event, factor) => {
+  if (mainWindow) {
+    const clamped = Math.max(0.5, Math.min(2.0, factor));
+    mainWindow.webContents.setZoomFactor(clamped);
+    return clamped;
+  }
+  return 1.0;
+});
+
+// Open VSX API proxy — bypasses CORS restriction on file:// origin
+ipcMain.handle('openvsx:fetch', (event, url) => {
+  return new Promise((resolve, reject) => {
+    // Only allow requests to Open VSX
+    if (!url.startsWith('https://open-vsx.org/')) {
+      reject(new Error('URL not allowed: ' + url));
+      return;
+    }
+    const req = https.get(url, {
+      headers: {
+        'User-Agent': 'EDITH-IDE/1.0',
+        'Accept': 'application/json',
+      }
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          resolve({ ok: true, status: res.statusCode, data: JSON.parse(data) });
+        } catch (e) {
+          resolve({ ok: false, status: res.statusCode, error: 'JSON parse error: ' + e.message });
+        }
+      });
+    });
+    req.on('error', (err) => {
+      resolve({ ok: false, status: 0, error: err.message });
+    });
+    req.setTimeout(10000, () => {
+      req.destroy();
+      resolve({ ok: false, status: 0, error: 'Request timed out' });
+    });
+  });
+});
+
+// System info
 ipcMain.handle('system:info', async () => {
-  // CPU usage: sample over 200ms delta
   function getCpuUsage() {
     return new Promise((resolve) => {
       const cpus1 = os.cpus();
@@ -424,120 +628,12 @@ ipcMain.handle('system:info', async () => {
   };
 });
 
-// Recursive Directory Reader helper
-function readDirRecursive(dirPath, rootDir) {
-  let results = [];
-  try {
-    const list = fs.readdirSync(dirPath);
-    list.forEach(file => {
-      const fullPath = path.join(dirPath, file);
-      const stat = fs.statSync(fullPath);
-      const relativePath = path.relative(rootDir, fullPath).replace(/\\/g, '/');
-
-      // Ignore builds, node_modules, temp and git folders to keep file tree clean
-      const ignoreDirs = ['node_modules', '.git', '__pycache__', 'dist', 'dist-installer', 'build_temp', 'build', '.gemini', 'mobile-app'];
-      if (ignoreDirs.includes(file)) {
-        return;
-      }
-
-      if (stat && stat.isDirectory()) {
-        results.push({
-          name: file,
-          path: relativePath,
-          isDir: true,
-          children: readDirRecursive(fullPath, rootDir)
-        });
-      } else {
-        results.push({
-          name: file,
-          path: relativePath,
-          isDir: false
-        });
-      }
-    });
-  } catch (err) {
-    console.error(`Error listing folder ${dirPath}:`, err);
-  }
-
-  // Sort folders first, then files alphabetically
-  return results.sort((a, b) => {
-    if (a.isDir && !b.isDir) return -1;
-    if (!a.isDir && b.isDir) return 1;
-    return a.name.localeCompare(b.name);
-  });
-}
-
-// Remove standard native menu bar
-Menu.setApplicationMenu(null);
-
-function createSplashWindow() {
-  splashWindow = new BrowserWindow({
-    width: 420,
-    height: 420,
-    frame: false,
-    transparent: true,
-    resizable: false,
-    alwaysOnTop: true,
-    center: true,
-    icon: ICON_PATH,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true
-    }
-  });
-
-  splashWindow.loadFile(path.join(__dirname, 'renderer', 'splash.html'));
-
-  splashWindow.on('closed', () => {
-    splashWindow = null;
-  });
-}
-
-function createMainWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    minWidth: 950,
-    minHeight: 650,
-    show: false,
-    frame: false,
-    icon: ICON_PATH,
-    title: 'EDITH',
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
-    }
-  });
-
-  mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
-
-  mainWindow.on('maximize', sendWindowState);
-  mainWindow.on('unmaximize', sendWindowState);
-  mainWindow.on('restore', sendWindowState);
-  mainWindow.webContents.on('did-finish-load', sendWindowState);
-
-  mainWindow.once('ready-to-show', () => {
-    if (splashWindow && !splashWindow.isDestroyed()) {
-      splashWindow.close();
-    }
-    mainWindow.show();
-
-    // Spawn live terminal Session
-    initTerminal(mainWindow.webContents);
-  });
-
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-  });
-}
+// ─── App lifecycle ───────────────────────────────────────────────────────────
 
 app.whenReady().then(async () => {
   createSplashWindow();
 
-  // Wait for the backend to become available (started externally)
   const backendReady = await waitForBackend((statusMsg) => {
-    // Forward status updates to the splash window if it's still open
     if (splashWindow && !splashWindow.isDestroyed()) {
       splashWindow.webContents.executeJavaScript(
         `document.getElementById('splash-status') && (document.getElementById('splash-status').textContent = ${JSON.stringify(statusMsg)})`
@@ -545,37 +641,33 @@ app.whenReady().then(async () => {
     }
   });
 
-  // Signal splash to snap to 100% before opening main window
   if (backendReady && splashWindow && !splashWindow.isDestroyed()) {
     await splashWindow.webContents.executeJavaScript(
       `typeof window.__splashDone === 'function' && window.__splashDone()`
     ).catch(() => { });
-    // Short pause so the user sees "Backend ready!" at 100%
     await new Promise(r => setTimeout(r, 600));
   }
 
-  createMainWindow();
+  createWindow();
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createMainWindow();
-    }
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  if (process.platform !== 'darwin') app.quit();
 });
 
 app.on('before-quit', () => {
-  // Kill the local terminal session only — Electron does NOT own the backend process
   if (terminalSession) {
     try {
       terminalSession.kill();
     } catch (e) { }
   }
-  // NOTE: The backend (edith-backend.exe / Windows Service) is intentionally NOT killed here.
-  // It is managed externally and should continue running after the UI is closed.
+  if (runProcess) {
+    try {
+      runProcess.kill();
+    } catch (e) { }
+  }
 });

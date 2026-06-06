@@ -1,0 +1,29 @@
+/* ─── Editor Container ────────────────────────────────────────────────────── */
+#editors-container {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  background: var(--bg-primary);
+}
+
+#editor-welcome {
+  position: absolute; inset: 0;
+  z-index: 1;
+}
+
+#editor-main {
+  position: absolute; inset: 0;
+  z-index: 0;
+}
+#editor-main.visible { z-index: 2; }
+
+/* Monaco editor overrides */
+.monaco-editor .margin { background: var(--bg-primary) !important; }
+.monaco-editor, .monaco-editor-background { background: var(--bg-primary) !important; }
+.monaco-editor .current-line { background: rgba(124, 106, 247, 0.08) !important; }
+
+/* Editor scrollbar */
+.monaco-scrollable-element > .scrollbar > .slider {
+  background: var(--border) !important;
+  border-radius: 3px !important;
+}

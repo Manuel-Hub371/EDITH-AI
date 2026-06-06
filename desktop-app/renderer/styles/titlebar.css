@@ -1,0 +1,329 @@
+/* ─── Title Bar ───────────────────────────────────────────────────────────── */
+:root {
+  --titlebar-height: 38px;
+}
+
+#title-bar {
+  height: var(--titlebar-height);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  -webkit-app-region: drag;
+  flex-shrink: 0;
+  z-index: 200;
+  gap: 0;
+}
+
+/* ── Left section ─────────────────────────────────────────────────────────── */
+#title-bar-left {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+  padding-left: 4px;
+  gap: 2px;
+}
+
+#title-bar-logo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.03em;
+  cursor: default;
+  white-space: nowrap;
+}
+
+#title-bar-menu {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.menu-item {
+  padding: 4px 7px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: color var(--transition), background var(--transition);
+  -webkit-app-region: no-drag;
+  white-space: nowrap;
+  height: 24px;
+  display: flex;
+  align-items: center;
+}
+.menu-item:hover  { color: var(--text-primary); background: var(--bg-hover); }
+.menu-item.active { color: var(--text-primary); background: var(--bg-active); }
+
+/* ── Centre section — search bar ─────────────────────────────────────────── */
+#title-bar-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* This section is draggable — search bar opts out below */
+  padding: 0 12px;
+  min-width: 0;
+}
+
+#title-search-bar {
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0 10px;
+  height: 26px;
+  width: 100%;
+  max-width: 460px;
+  cursor: text;
+  transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+}
+#title-search-bar:hover {
+  border-color: var(--text-muted);
+  background: var(--bg-hover);
+}
+#title-search-bar:focus-within {
+  border-color: var(--border-focus);
+  background: var(--bg-primary);
+  box-shadow: 0 0 0 2px rgba(124, 106, 247, 0.18);
+}
+
+#title-search-icon {
+  width: 12px;
+  height: 12px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+#title-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 12px;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  min-width: 0;
+  padding: 0;
+  caret-color: var(--accent);
+}
+#title-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+#title-search-shortcut {
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: var(--font-ui);
+  pointer-events: none;
+  transition: opacity var(--transition);
+}
+#title-search-bar:focus-within #title-search-shortcut {
+  opacity: 0;
+}
+
+/* ── Right section ────────────────────────────────────────────────────────── */
+#title-bar-right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+  gap: 0;
+}
+
+#title-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px;
+}
+
+/* Action buttons with icon + label */
+.tb-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: var(--font-ui);
+  border-radius: var(--radius);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--transition), background var(--transition);
+  -webkit-app-region: no-drag;
+}
+.tb-action-btn svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+.tb-action-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.tb-action-btn:active {
+  background: var(--bg-active);
+}
+
+/* Run button — special accent colour */
+#tb-btn-run svg {
+  color: var(--green);
+}
+#tb-btn-run:hover {
+  color: var(--green);
+  background: rgba(166, 227, 161, 0.12);
+}
+
+/* Terminal button */
+#tb-btn-terminal:hover {
+  color: var(--cyan);
+  background: rgba(137, 220, 235, 0.1);
+}
+
+/* Icon-only buttons (no label) */
+.tb-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: color var(--transition), background var(--transition);
+  -webkit-app-region: no-drag;
+}
+.tb-icon-btn svg {
+  width: 14px;
+  height: 14px;
+}
+.tb-icon-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+/* Vertical divider */
+.tb-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* ── Window controls ──────────────────────────────────────────────────────── */
+#title-bar-controls {
+  display: flex;
+  align-items: stretch;
+  height: var(--titlebar-height);
+  -webkit-app-region: no-drag;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+
+#title-bar-controls button {
+  width: 46px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition), color var(--transition);
+  -webkit-app-region: no-drag;
+}
+#title-bar-controls button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+#btn-close:hover {
+  background: var(--red) !important;
+  color: #fff !important;
+}
+
+/* ── Dropdown menus ───────────────────────────────────────────────────────── */
+#navbar-dropdown {
+  position: fixed;
+  z-index: 2000;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  min-width: 200px;
+  padding: 4px;
+  animation: dropdownIn 120ms ease forwards;
+}
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#navbar-dropdown-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dd-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: background var(--transition), color var(--transition);
+  gap: 16px;
+  white-space: nowrap;
+}
+.dd-item:hover    { background: var(--bg-hover); color: var(--text-primary); }
+.dd-item.disabled { opacity: 0.4; pointer-events: none; }
+
+.dd-item-label { flex: 1; }
+.dd-item-key   {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
+.dd-separator {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.dd-group-label {
+  padding: 4px 10px 2px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
