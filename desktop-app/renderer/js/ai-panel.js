@@ -2,14 +2,14 @@
 
 const AIPanel = (() => {
   const BACKEND_URL = 'http://127.0.0.1:8001';
-  
+
   let isVisible = true;
   let conversationHistory = [];
   let isProcessing = false;
   let currentContext = null;
 
   // DOM Elements
-  let panel, messages, input, sendBtn, statusEl;
+  let panel, messages, input, sendBtn, statusEl, connectionDot;
 
   // ─── Init ─────────────────────────────────────────────────────────────────
 
@@ -19,6 +19,7 @@ const AIPanel = (() => {
     input = document.getElementById('ai-input');
     sendBtn = document.getElementById('ai-send-btn');
     statusEl = document.getElementById('ai-status');
+    connectionDot = document.getElementById('ai-connection-dot');
 
     // Event listeners
     sendBtn.addEventListener('click', handleSend);
@@ -37,9 +38,20 @@ const AIPanel = (() => {
 
     // Toggle button
     document.getElementById('btn-toggle-ai').addEventListener('click', toggle);
-    
-    // Close button
-    document.getElementById('btn-close-ai').addEventListener('click', () => toggle(false));
+
+    // Clear button
+    document.getElementById('btn-clear-ai').addEventListener('click', clearHistory);
+
+    // Switch to Normal Mode button
+    const switchBtn = document.getElementById('btn-switch-to-normal');
+    if (switchBtn) {
+      switchBtn.addEventListener('click', async () => {
+        console.log('[AIPanel] Switching to Normal Mode');
+        if (window.novagen && window.novagen.navigation) {
+          await window.novagen.navigation.loadNormalMode();
+        }
+      });
+    }
 
     // Resizer
     initResizer();
@@ -109,6 +121,16 @@ const AIPanel = (() => {
       statusEl.textContent = message;
       statusEl.className = `ai-status ${type}`;
     }
+    if (connectionDot) {
+      const statusClass = type || 'unknown';
+      connectionDot.className = `ai-connection-dot ${statusClass}`;
+      const titleText = statusClass === 'connected'
+        ? 'EDITH connected'
+        : statusClass === 'error'
+          ? 'EDITH offline'
+          : 'EDITH status unknown';
+      connectionDot.setAttribute('title', titleText);
+    }
   }
 
   // ─── Send Message ─────────────────────────────────────────────────────────
@@ -146,7 +168,7 @@ const AIPanel = (() => {
       }
 
       const data = await response.json();
-      
+
       // Remove thinking indicator
       removeMessage(thinkingId);
 
@@ -232,9 +254,9 @@ const AIPanel = (() => {
     messageEl.className = `ai-message ${role}`;
     messageEl.dataset.timestamp = Date.now();
 
-    const time = new Date().toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    const time = new Date().toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
     });
 
     messageEl.innerHTML = `
@@ -246,8 +268,8 @@ const AIPanel = (() => {
       <div class="ai-message-content">${formatMessage(content)}</div>
     `;
 
-    // Add action buttons for assistant messages
-    if (role === 'assistant') {
+    // Add action buttons for assistant messages only in Agent mode
+    if (role === 'assistant' && currentMode === 'agent') {
       const actions = document.createElement('div');
       actions.className = 'ai-message-actions';
       actions.innerHTML = `
@@ -370,7 +392,7 @@ const AIPanel = (() => {
         </div>
       </div>
     `;
-    
+
     // Re-attach suggestion button listeners
     document.querySelectorAll('.ai-suggestion-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -386,11 +408,17 @@ const AIPanel = (() => {
 
   function toggle(forceState) {
     isVisible = forceState !== undefined ? forceState : !isVisible;
-    
+
+    const resizer = document.getElementById('ai-panel-resizer');
+
     if (isVisible) {
       panel.classList.remove('collapsed');
+      if (resizer) resizer.classList.remove('collapsed');
     } else {
+      // Clear any inline width set by the resizer drag before collapsing
+      panel.style.width = '';
       panel.classList.add('collapsed');
+      if (resizer) resizer.classList.add('collapsed');
     }
 
     // Update toggle button state
@@ -399,7 +427,11 @@ const AIPanel = (() => {
       toggleBtn.classList.toggle('active', isVisible);
     }
 
-    if (window.EditorManager) EditorManager.layout();
+    // Let the CSS transition finish, then tell Monaco to re-layout
+    if (window.EditorManager) {
+      EditorManager.layout();
+      setTimeout(() => EditorManager.layout(), 220);
+    }
   }
 
   function show() { toggle(true); }

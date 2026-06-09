@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data:; connect-src 'self' http://127.0.0.1:8001 ws://127.0.0.1:8001;" />
+  <title>EDITH Chat</title>
+  <link rel="stylesheet" href="styles/chatbot.css" />
+</head>
+<body>
+  
+  <div class="app-container">
+    
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <polygon points="12,2 22,20 2,20" fill="#3b82f6" stroke="#60a5fa" stroke-width="1.5" />
+            <polygon points="12,6 18,18 6,18" fill="#1e293b" />
+            <circle cx="12" cy="13" r="2" fill="#60a5fa" />
+          </svg>
+          <span>EDITH</span>
+        </div>
+        <button class="icon-btn" id="sidebar-toggle" title="Toggle sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12h18M3 6h18M3 18h18"/>
+          </svg>
+        </button>
+      </div>
+
+      <button class="new-chat-btn" id="btn-new-chat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 8v8M8 12h8"/>
+        </svg>
+        <span>New Chat</span>
+      </button>
+
+      <div class="sidebar-section">
+        <h3>Your Chats</h3>
+        <div class="chat-history" id="chat-history">
+          <!-- Chat history items will be added here -->
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="footer-link" id="btn-settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6m0 6v6M5.6 5.6l4.2 4.2m4.2 4.2l4.2 4.2M1 12h6m6 0h6M5.6 18.4l4.2-4.2m4.2-4.2l4.2-4.2"/>
+          </svg>
+          <span>Settings</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-container">
+      
+      <!-- Top Bar -->
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <button class="icon-btn mobile-menu" id="mobile-menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 12h18M3 6h18M3 18h18"/>
+            </svg>
+          </button>
+          
+          <div class="model-selector">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+            <span>EDITH v4.0</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="top-bar-right">
+          <div class="status" id="connection-status">
+            <span class="status-dot"></span>
+            <span class="status-text">Connecting...</span>
+          </div>
+
+          <div class="mode-toggle">
+            <button class="toggle-btn" id="mode-toggle">
+              <span>Agent</span>
+            </button>
+          </div>
+
+          <div class="window-controls">
+            <button id="btn-minimize">−</button>
+            <button id="btn-maximize">□</button>
+            <button id="btn-close">×</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Chat Area -->
+      <main class="chat-area">
+        <div class="messages-container" id="messages">
+          
+          <!-- Welcome Screen -->
+          <div class="welcome-screen" id="welcome">
+            <div class="welcome-orb">
+              <div class="orb-outer">
+                <div class="orb-inner">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                    <polygon points="12,2 22,20 2,20" fill="#3b82f6" stroke="#60a5fa" stroke-width="1" />
+                    <polygon points="12,6 18,18 6,18" fill="#0f172a" />
+                    <circle cx="12" cy="13" r="2.5" fill="#60a5fa" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
+            <h2>Welcome Back Sir</h2>
+            <p>How can i assist you today ?</p>
+          </div>
+
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-container">
+          <div class="input-wrapper">
+            <button class="input-icon-btn" id="btn-attach" title="Attach" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14M5 12h14"/>
+              </svg>
+            </button>
+
+            <textarea 
+              id="input" 
+              class="input-field" 
+              placeholder="Ask me anything..."
+              rows="1"
+            ></textarea>
+
+            <div class="input-actions">
+              <button class="input-action-btn" title="Tools">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <span>Tools</span>
+              </button>
+
+              <button class="input-action-btn" title="Voice" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/>
+                  <path d="M19 10v2a7 7 0 01-14 0v-2"/>
+                </svg>
+                <span>Voice</span>
+              </button>
+
+              <button class="send-btn" id="btn-send">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+    </div>
+
+    <!-- Custom Delete Confirmation Dialog -->
+    <div class="modal-overlay" id="delete-modal">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3>Delete Chat</h3>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to delete this chat? This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-cancel" id="delete-cancel">Cancel</button>
+          <button class="modal-btn modal-btn-delete" id="delete-confirm">Delete</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="js/chatbot.js"></script>
+</body>
+</html>

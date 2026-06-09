@@ -70,7 +70,13 @@
         }
         break;
       case 'run-file':
-        waitForModule('Notifications', () => Notifications.info('Run', 'Run configuration coming soon.'));
+        waitForModule('App', () => {
+          if (window.App && window.App.runCurrentFile) {
+            window.App.runCurrentFile();
+          } else {
+            console.warn('[titlebar] App.runCurrentFile not available yet');
+          }
+        });
         break;
       case 'split-editor':
         waitForModule('Notifications', () => Notifications.info('Split Editor', 'Split editor view coming soon.'));

@@ -266,7 +266,7 @@ const Terminal = (() => {
     updatePrompt();
   }
 
-  return { init, writeLine, writeLines, clear, toggle, show, setCwd, runCommand };
+  return { init, writeLine, writeLines, clear, toggle, show, setCwd, runCommand, switchPanel, get isCollapsed() { return isCollapsed; } };
 })();
 
 // Expose to window for other modules

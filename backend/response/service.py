@@ -20,7 +20,8 @@ class ResponseGenerator:
             api_key = "dummy-api-key-for-startup-continuity"
         self.client = AsyncOpenAI(
             base_url=os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1"),
-            api_key=api_key
+            api_key=api_key,
+            timeout=15.0
         )
         self.model = os.getenv("NVIDIA_MODEL", "meta/llama-3.1-70b-instruct")
 

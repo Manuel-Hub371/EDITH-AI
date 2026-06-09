@@ -84,6 +84,12 @@ contextBridge.exposeInMainWorld('edith', {
   openVsx: {
     fetch: (url) => ipcRenderer.invoke('openvsx:fetch', url),
   },
+
+  // Navigation between modes
+  navigation: {
+    loadAgentMode: () => ipcRenderer.invoke('navigation:load-agent-mode'),
+    loadNormalMode: () => ipcRenderer.invoke('navigation:load-normal-mode'),
+  },
 });
 
 // Also expose as 'novagen' for compatibility with NovaGen code
@@ -118,5 +124,19 @@ contextBridge.exposeInMainWorld('novagen', {
   },
   dialog: {
     showConfirm: (options) => ipcRenderer.invoke('show-confirm-dialog', options),
+  },
+  run: {
+    file: (options) => ipcRenderer.invoke('run:file', options),
+    kill: () => ipcRenderer.invoke('run:kill'),
+    onOutput: (cb) => ipcRenderer.on('run:output', (_, data) => cb(data)),
+  },
+  file: {
+    openExternal: (filePath) => ipcRenderer.invoke('file:open-external', filePath),
+  },
+  
+  // Navigation between modes
+  navigation: {
+    loadAgentMode: () => ipcRenderer.invoke('navigation:load-agent-mode'),
+    loadNormalMode: () => ipcRenderer.invoke('navigation:load-normal-mode'),
   },
 });

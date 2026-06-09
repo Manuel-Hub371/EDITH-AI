@@ -167,7 +167,8 @@ function createWindow() {
     },
   });
 
-  mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  // Start in chatbot mode (Normal Mode)
+  mainWindow.loadFile(path.join(__dirname, 'renderer', 'chatbot.html'));
 
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
     console.log(`[Renderer] ${message} (at ${path.basename(sourceId)}:${line})`);
@@ -576,6 +577,28 @@ ipcMain.handle('openvsx:fetch', (event, url) => {
       resolve({ ok: false, status: 0, error: 'Request timed out' });
     });
   });
+});
+
+// Navigation between modes
+ipcMain.handle('navigation:load-agent-mode', async () => {
+  if (!mainWindow) return { success: false };
+  try {
+    await mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+    initTerminal(mainWindow.webContents);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('navigation:load-normal-mode', async () => {
+  if (!mainWindow) return { success: false };
+  try {
+    await mainWindow.loadFile(path.join(__dirname, 'renderer', 'chatbot.html'));
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
 });
 
 // System info

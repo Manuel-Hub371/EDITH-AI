@@ -25,6 +25,7 @@ class PostgresStateRepository:
         self.db_url = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/edith")
         self._in_memory_db: Dict[str, dict] = {}
         self._use_fallback = False
+        self._initialized = False
         
         try:
             self.engine = create_async_engine(self.db_url, echo=False)
@@ -37,12 +38,13 @@ class PostgresStateRepository:
 
     async def initialize(self):
         """Creates tables if they don't exist."""
-        if self._use_fallback:
+        if self._use_fallback or self._initialized:
             return
             
         try:
             async with self.engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
+            self._initialized = True
             logger.info("PostgreSQL tables initialized.")
         except Exception as e:
             logger.error(f"PostgreSQL initialization failed: {e}. Using in-memory fallback.")

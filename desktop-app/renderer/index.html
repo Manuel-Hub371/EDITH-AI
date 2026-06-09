@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https://open-vsx.org https://*.open-vsx.org https://openvsx.eclipsecontent.org https://*.openvsx.eclipsecontent.org; connect-src 'self' http://127.0.0.1:8001 ws://127.0.0.1:8001 https://open-vsx.org https://*.open-vsx.org;" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https://open-vsx.org https://*.open-vsx.org https://openvsx.eclipsecontent.org https://*.openvsx.eclipsecontent.org; connect-src 'self' http://127.0.0.1:8001 ws://127.0.0.1:8001 https://open-vsx.org https://*.open-vsx.org;" />
   <title>EDITH — Enhanced Development Interface with Thinking and Heuristics</title>
   <link rel="stylesheet" href="styles/main.css" />
   <link rel="stylesheet" href="styles/titlebar.css" />
@@ -18,6 +20,7 @@
   <link rel="stylesheet" href="styles/ai-panel.css" />
   <link rel="stylesheet" href="styles/extensions.css" />
 </head>
+
 <body>
   <!-- Title Bar -->
   <div id="title-bar">
@@ -26,9 +29,9 @@
     <div id="title-bar-left">
       <div id="title-bar-logo">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <polygon points="12,2 22,20 2,20" fill="#7c6af7" stroke="#a78bfa" stroke-width="1.5"/>
+          <polygon points="12,2 22,20 2,20" fill="#7c6af7" stroke="#a78bfa" stroke-width="1.5" />
           <polygon points="12,6 18,18 6,18" fill="#1e1e2e" />
-          <circle cx="12" cy="13" r="2" fill="#7c6af7"/>
+          <circle cx="12" cy="13" r="2" fill="#7c6af7" />
         </svg>
         <span>EDITH</span>
       </div>
@@ -47,15 +50,11 @@
     <div id="title-bar-center">
       <div id="title-search-bar">
         <svg id="title-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/>
+          <circle cx="11" cy="11" r="7" />
+          <line x1="16.5" y1="16.5" x2="22" y2="22" />
         </svg>
-        <input
-          id="title-search-input"
-          type="text"
-          placeholder="Search files, commands, symbols…"
-          autocomplete="off"
-          spellcheck="false"
-        />
+        <input id="title-search-input" type="text" placeholder="Search files, commands, symbols…" autocomplete="off"
+          spellcheck="false" />
         <span id="title-search-shortcut">Ctrl+P</span>
       </div>
     </div>
@@ -67,7 +66,7 @@
         <!-- Run -->
         <button class="tb-action-btn" id="tb-btn-run" title="Run (F5)">
           <svg viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="5,3 19,12 5,21"/>
+            <polygon points="5,3 19,12 5,21" />
           </svg>
           <span>Run</span>
         </button>
@@ -75,7 +74,8 @@
         <!-- Terminal toggle -->
         <button class="tb-action-btn" id="tb-btn-terminal" title="Toggle Terminal (Ctrl+`)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+            <polyline points="4 17 10 11 4 5" />
+            <line x1="12" y1="19" x2="20" y2="19" />
           </svg>
           <span>Terminal</span>
         </button>
@@ -83,7 +83,8 @@
         <!-- Split editor -->
         <button class="tb-action-btn" id="tb-btn-split" title="Split Editor">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="3" width="9" height="18" rx="1"/><rect x="13" y="3" width="9" height="18" rx="1"/>
+            <rect x="2" y="3" width="9" height="18" rx="1" />
+            <rect x="13" y="3" width="9" height="18" rx="1" />
           </svg>
           <span>Split</span>
         </button>
@@ -93,16 +94,17 @@
         <!-- Notifications / bell -->
         <button class="tb-icon-btn" id="tb-btn-notifications" title="Notifications">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 01-3.46 0"/>
+            <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 01-3.46 0" />
           </svg>
         </button>
 
         <!-- Settings -->
         <button class="tb-icon-btn" id="tb-btn-settings" title="Settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
           </svg>
         </button>
 
@@ -111,9 +113,9 @@
         <!-- AI Assistant Toggle -->
         <button class="tb-icon-btn active" id="btn-toggle-ai" title="Toggle AI Assistant (Ctrl+Shift+A)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-            <path d="M2 17l10 5 10-5"/>
-            <path d="M2 12l10 5 10-5"/>
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
           </svg>
         </button>
       </div>
@@ -121,15 +123,19 @@
       <!-- Window controls (always last, always no-drag) -->
       <div id="title-bar-controls">
         <button id="btn-minimize" title="Minimize">
-          <svg width="10" height="1" viewBox="0 0 10 1"><rect width="10" height="1" fill="currentColor"/></svg>
+          <svg width="10" height="1" viewBox="0 0 10 1">
+            <rect width="10" height="1" fill="currentColor" />
+          </svg>
         </button>
         <button id="btn-maximize" title="Maximize">
-          <svg width="10" height="10" viewBox="0 0 10 10"><rect width="9" height="9" x="0.5" y="0.5" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+          <svg width="10" height="10" viewBox="0 0 10 10">
+            <rect width="9" height="9" x="0.5" y="0.5" fill="none" stroke="currentColor" stroke-width="1" />
+          </svg>
         </button>
         <button id="btn-close" title="Close">
           <svg width="10" height="10" viewBox="0 0 10 10">
-            <line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" stroke-width="1.2"/>
-            <line x1="10" y1="0" x2="0" y2="10" stroke="currentColor" stroke-width="1.2"/>
+            <line x1="0" y1="0" x2="10" y2="10" stroke="currentColor" stroke-width="1.2" />
+            <line x1="10" y1="0" x2="0" y2="10" stroke="currentColor" stroke-width="1.2" />
           </svg>
         </button>
       </div>
@@ -149,33 +155,38 @@
       <div class="activity-group top">
         <button class="activity-btn active" data-panel="explorer" title="Explorer (Ctrl+Shift+E)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+            <path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
           </svg>
         </button>
         <button class="activity-btn" data-panel="search" title="Search (Ctrl+Shift+F)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <circle cx="11" cy="11" r="7"/>
-            <line x1="16.5" y1="16.5" x2="22" y2="22"/>
+            <circle cx="11" cy="11" r="7" />
+            <line x1="16.5" y1="16.5" x2="22" y2="22" />
           </svg>
         </button>
         <button class="activity-btn" data-panel="git" title="Source Control (Ctrl+Shift+G)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/>
-            <path d="M6 8.5v7M8.5 6h7M13.5 8l3 3"/>
+            <circle cx="6" cy="6" r="2.5" />
+            <circle cx="18" cy="6" r="2.5" />
+            <circle cx="6" cy="18" r="2.5" />
+            <path d="M6 8.5v7M8.5 6h7M13.5 8l3 3" />
           </svg>
         </button>
         <button class="activity-btn" data-panel="extensions" title="Extensions (Ctrl+Shift+X)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <rect x="2" y="2" width="9" height="9" rx="1"/><rect x="13" y="2" width="9" height="9" rx="1"/>
-            <rect x="2" y="13" width="9" height="9" rx="1"/><rect x="13" y="13" width="9" height="9" rx="1"/>
+            <rect x="2" y="2" width="9" height="9" rx="1" />
+            <rect x="13" y="2" width="9" height="9" rx="1" />
+            <rect x="2" y="13" width="9" height="9" rx="1" />
+            <rect x="13" y="13" width="9" height="9" rx="1" />
           </svg>
         </button>
       </div>
       <div class="activity-group bottom">
         <button class="activity-btn" data-panel="settings" title="Settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
           </svg>
         </button>
       </div>
@@ -189,23 +200,37 @@
           <span class="panel-title">EXPLORER</span>
           <div class="panel-actions">
             <button class="icon-btn" id="btn-new-file" title="New File">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="12" y1="11" x2="12" y2="17" />
+                <line x1="9" y1="14" x2="15" y2="14" />
+              </svg>
             </button>
             <button class="icon-btn" id="btn-new-folder" title="New Folder">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 2h9a2 2 0 012 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 2h9a2 2 0 012 2z" />
+                <line x1="12" y1="11" x2="12" y2="17" />
+                <line x1="9" y1="14" x2="15" y2="14" />
+              </svg>
             </button>
             <button class="icon-btn" id="btn-refresh-explorer" title="Refresh">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+              </svg>
             </button>
             <button class="icon-btn" id="btn-open-folder" title="Open Folder">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 2h9a2 2 0 012 2z"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 2h9a2 2 0 012 2z" />
+              </svg>
             </button>
           </div>
         </div>
         <div id="explorer-tree">
           <div id="no-folder-open">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
-              <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 2h9a2 2 0 012 2z"/>
+              <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 2h9a2 2 0 012 2z" />
             </svg>
             <p>No folder opened</p>
             <button id="btn-open-folder-empty" class="primary-btn">Open Folder</button>
@@ -222,14 +247,19 @@
         <div class="panel-content">
           <div class="search-input-group">
             <input type="text" id="search-input" placeholder="Search" />
-            <button class="icon-btn" id="btn-search-regex" title="Use Regular Expression" data-active="false">.*</button>
+            <button class="icon-btn" id="btn-search-regex" title="Use Regular Expression"
+              data-active="false">.*</button>
             <button class="icon-btn" id="btn-search-case" title="Match Case" data-active="false">Aa</button>
             <button class="icon-btn" id="btn-search-word" title="Match Whole Word" data-active="false">W</button>
           </div>
           <div class="search-input-group">
             <input type="text" id="replace-input" placeholder="Replace" />
             <button class="icon-btn small" id="btn-replace-one" title="Replace">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 1l4 4-4 4" />
+                <path d="M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4" />
+                <path d="M21 13v2a4 4 0 01-4 4H3" />
+              </svg>
             </button>
             <button class="icon-btn small" id="btn-replace-all" title="Replace All">All</button>
           </div>
@@ -335,7 +365,10 @@
         <div id="tabs-list"></div>
         <div id="tabs-actions">
           <button class="icon-btn" id="btn-split-editor" title="Split Editor">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="9" height="18" rx="1"/><rect x="13" y="3" width="9" height="18" rx="1"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="9" height="18" rx="1" />
+              <rect x="13" y="3" width="9" height="18" rx="1" />
+            </svg>
           </button>
         </div>
       </div>
@@ -350,9 +383,9 @@
         <div id="editor-welcome" class="welcome-screen">
           <div class="welcome-logo">
             <svg width="80" height="80" viewBox="0 0 24 24" fill="none">
-              <polygon points="12,2 22,20 2,20" fill="#7c6af7" stroke="#a78bfa" stroke-width="1"/>
+              <polygon points="12,2 22,20 2,20" fill="#7c6af7" stroke="#a78bfa" stroke-width="1" />
               <polygon points="12,6 18,18 6,18" fill="#1e1e2e" />
-              <circle cx="12" cy="13" r="2.5" fill="#a78bfa"/>
+              <circle cx="12" cy="13" r="2.5" fill="#a78bfa" />
             </svg>
           </div>
           <h1>EDITH</h1>
@@ -386,34 +419,49 @@
           <div id="panel-tabs">
             <div class="panel-tab" data-panel="problems">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
-                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
               <span>Problems</span>
               <span class="panel-count">0</span>
             </div>
             <div class="panel-tab" data-panel="output">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
-                <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+                <polyline points="4 17 10 11 4 5" />
+                <line x1="12" y1="19" x2="20" y2="19" />
               </svg>
               <span>Output</span>
             </div>
             <div class="panel-tab" data-panel="debug-console">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
-                <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+                <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                <polyline points="2 17 12 22 22 17" />
+                <polyline points="2 12 12 17 22 12" />
               </svg>
               <span>Debug Console</span>
             </div>
             <div class="panel-tab active" data-panel="terminal">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
-                <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+                <polyline points="4 17 10 11 4 5" />
+                <line x1="12" y1="19" x2="20" y2="19" />
               </svg>
               <span>Terminal</span>
             </div>
             <div class="panel-tab" data-panel="ports">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
-                <rect x="2" y="7" width="20" height="10" rx="2"/><line x1="7" y1="12" x2="7.01" y2="12"/><line x1="12" y1="12" x2="12.01" y2="12"/><line x1="17" y1="12" x2="17.01" y2="12"/>
+                <rect x="2" y="7" width="20" height="10" rx="2" />
+                <line x1="7" y1="12" x2="7.01" y2="12" />
+                <line x1="12" y1="12" x2="12.01" y2="12" />
+                <line x1="17" y1="12" x2="17.01" y2="12" />
               </svg>
               <span>Ports</span>
+            </div>
+            <div class="panel-tab" data-panel="run-output">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                <polygon points="5,3 19,12 5,21" />
+              </svg>
+              <span>Run Output</span>
             </div>
           </div>
 
@@ -427,16 +475,27 @@
 
           <div id="terminal-actions">
             <button class="icon-btn" id="btn-new-terminal" title="New Terminal (Ctrl+Shift+`)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
             </button>
             <button class="icon-btn" id="btn-clear-panel" title="Clear">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14H6L5 6" />
+              </svg>
             </button>
             <button class="icon-btn" id="btn-split-terminal" title="Split Terminal">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="9" height="18" rx="1"/><rect x="13" y="3" width="9" height="18" rx="1"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="9" height="18" rx="1" />
+                <rect x="13" y="3" width="9" height="18" rx="1" />
+              </svg>
             </button>
             <button class="icon-btn" id="btn-toggle-terminal" title="Toggle Panel (Ctrl+`)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="18 15 12 9 6 15" />
+              </svg>
             </button>
           </div>
         </div>
@@ -444,13 +503,13 @@
 
         <!-- Panel content areas -->
         <div id="panel-content-area">
-          
+
           <!-- Problems panel -->
           <div class="panel-content" id="panel-problems" style="display: none;">
             <div class="panel-empty">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
-                <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
               </svg>
               <p>No problems detected</p>
             </div>
@@ -504,13 +563,15 @@ Ready.
             <div class="ports-toolbar">
               <button class="toolbar-btn" id="btn-forward-port" title="Forward a Port">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
                 <span>Forward Port</span>
               </button>
               <button class="toolbar-btn" id="btn-auto-forward" title="Toggle Auto Forward Ports">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                  <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/>
+                  <polyline points="23 4 23 10 17 10" />
+                  <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
                 </svg>
                 <span>Auto Forward: Off</span>
               </button>
@@ -518,10 +579,50 @@ Ready.
             <div class="ports-list">
               <div class="panel-empty">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
-                  <rect x="2" y="7" width="20" height="10" rx="2"/><line x1="7" y1="12" x2="7.01" y2="12"/>
+                  <rect x="2" y="7" width="20" height="10" rx="2" />
+                  <line x1="7" y1="12" x2="7.01" y2="12" />
                 </svg>
                 <p>No forwarded ports</p>
                 <p class="hint">Forward a port to access your running services</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Run Output panel -->
+          <div class="panel-content" id="panel-run-output">
+            <div class="run-output-header">
+              <div class="run-file-info">
+                <span id="run-file-name">No file running</span>
+                <span id="run-status" class="run-status-idle"></span>
+              </div>
+              <div class="run-actions">
+                <button class="icon-btn" id="btn-stop-run" title="Stop Execution" disabled>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="6" y="6" width="12" height="12" />
+                  </svg>
+                </button>
+                <button class="icon-btn" id="btn-rerun" title="Run Again">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="23 4 23 10 17 10" />
+                    <path d="M20.49 15a9 9 0 11-2.12-9.36L23 10" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div class="run-output-body">
+              <div id="run-output-text">Click the Run button (F5) or use Ctrl+F5 to execute the current file.
+
+                Supported file types:
+                • Python (.py)
+                • JavaScript (.js)
+                • TypeScript (.ts - requires ts-node)
+                • Node.js (.mjs, .cjs)
+                • HTML (.html - opens in browser)
+                • Java (.java - compiles and runs)
+                • C/C++ (.c, .cpp - compiles and runs)
+                • Go (.go)
+                • Rust (.rs)
+                • Shell scripts (.sh, .bat, .ps1)
               </div>
             </div>
           </div>
@@ -539,23 +640,28 @@ Ready.
       <div id="ai-panel-header">
         <div id="ai-panel-title">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-            <path d="M2 17l10 5 10-5"/>
-            <path d="M2 12l10 5 10-5"/>
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
           </svg>
-          <span>EDITH AI</span>
+          <span class="ai-title-text">
+            <span class="edith-label">
+              EDITH
+              <span id="ai-connection-dot" class="ai-connection-dot status-unknown"
+                title="EDITH connection status"></span>
+            </span>
+          </span>
         </div>
         <div id="ai-panel-actions">
+          <button class="icon-btn" id="btn-switch-to-normal" title="Switch to Normal Mode">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </button>
           <button class="icon-btn" id="btn-clear-ai" title="Clear History">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-          </button>
-          <button class="icon-btn" id="btn-close-ai" title="Close AI Panel">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
           </button>
         </div>
@@ -570,9 +676,9 @@ Ready.
           <!-- Welcome Screen -->
           <div class="ai-welcome">
             <svg class="ai-welcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5"/>
-              <path d="M2 12l10 5 10-5"/>
+              <path d="M12 2L2 7l10 5 10-5-10-5z" />
+              <path d="M2 17l10 5 10-5" />
+              <path d="M2 12l10 5 10-5" />
             </svg>
             <h3>EDITH AI Assistant</h3>
             <p>Ask me anything about your code, get suggestions, or request help with development tasks.</p>
@@ -589,18 +695,14 @@ Ready.
         <div id="ai-input-container">
           <div id="ai-context-info">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <line x1="12" y1="16" x2="12" y2="12"/>
-              <line x1="12" y1="8" x2="12.01" y2="8"/>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
             </svg>
             <span>Context: Active file and workspace</span>
           </div>
           <div id="ai-input-wrapper">
-            <textarea 
-              id="ai-input" 
-              placeholder="Ask EDITH anything..." 
-              rows="1"
-            ></textarea>
+            <textarea id="ai-input" placeholder="Ask EDITH anything..." rows="1"></textarea>
             <button id="ai-send-btn" title="Send (Enter)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -617,13 +719,27 @@ Ready.
   <div id="status-bar">
     <div class="status-left">
       <div class="status-item" id="status-branch">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M6 8.5v7M8.5 6h7M13.5 8l3 3"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+          <circle cx="6" cy="6" r="2.5" />
+          <circle cx="18" cy="6" r="2.5" />
+          <circle cx="6" cy="18" r="2.5" />
+          <path d="M6 8.5v7M8.5 6h7M13.5 8l3 3" />
+        </svg>
         <span>main</span>
       </div>
       <div class="status-item" id="status-errors">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
         <span>0</span>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="margin-left:4px"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"
+          style="margin-left:4px">
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
         <span>0</span>
       </div>
     </div>
@@ -684,4 +800,5 @@ Ready.
   <!-- Window controls — wired immediately, no dependency on app init or Monaco -->
   <script src="js/titlebar.js"></script>
 </body>
+
 </html>
